@@ -1,0 +1,36 @@
+.score-display {
+  text-align: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  max-width: 960px;
+  margin: 0 auto 20px auto;
+}
+
+.score-value {
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.score-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #b8860b;
+}
+
+.final-results {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.words-correct {
+  font-size: 1.1rem;
+  color: #4caf50;
+}
+
+.perfect-score {
+  font-size: 1.5rem;
+  margin-top: 8px;
+}

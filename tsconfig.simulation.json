@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "outDir": "./dist/simulation",
+    "rootDir": "./src"
+  },
+  "include": [
+    "src/simulation/**/*",
+    "src/utils/gameLogic.ts",
+    "src/types/game.ts",
+    "src/data/words.ts"
+  ],
+  "exclude": ["node_modules"]
+}

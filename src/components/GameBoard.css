@@ -1,0 +1,736 @@
+/* ============================================
+   CASCADE - GAME BOARD LAYOUT
+   3-column responsive layout that stays stable
+   across all game phases (no scrolling needed)
+   ============================================ */
+
+/* Root container - viewport height, no scroll */
+.game-board {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+/* Header - compact, always visible */
+.game-header {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 12px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.game-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #b8860b;
+  margin: 0;
+  letter-spacing: 0.3em;
+}
+
+.puzzle-badge {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.puzzle-badge.curated {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.puzzle-badge.random {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.game-subtitle {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 4px 0 0 0;
+}
+
+.puzzle-theme {
+  font-size: 0.85rem;
+  color: #667eea;
+  margin: 4px 0 0 0;
+}
+
+/* Main content - fills remaining space */
+.game-main {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  min-height: 0; /* Allow flex shrinking */
+  overflow: hidden;
+}
+
+/* Left Panel - Controls & Score */
+.left-panel {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+/* Center Panel - Word Columns */
+.center-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  min-width: 0;
+}
+
+/* Right Panel - Info & Instructions */
+.right-panel {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+/* ============================================
+   PANEL CARDS - Consistent styling
+   ============================================ */
+
+.panel-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  padding: 12px;
+}
+
+.panel-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+}
+
+/* ============================================
+   SCORE DISPLAY - Left Panel
+   ============================================ */
+
+.score-card {
+  background: linear-gradient(135deg, #fff9e6 0%, #fff 100%);
+  border-color: #e0c878;
+}
+
+.score-value {
+  text-align: center;
+}
+
+.score-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #b8860b;
+  display: block;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 0.8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.phase-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.phase-badge.letter-phase {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.phase-badge.word-phase {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.phase-badge.complete {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* ============================================
+   LETTER GUESSING CONTROLS - Left Panel
+   ============================================ */
+
+.letter-controls {
+  border-color: #90caf9;
+  background: linear-gradient(135deg, #e3f2fd 0%, #fff 100%);
+}
+
+.guess-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+
+.guess-stats .stat {
+  text-align: center;
+}
+
+.guess-stats .stat-value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  display: block;
+}
+
+.guess-stats .letters-stat .stat-value {
+  color: #1976d2;
+}
+
+.guess-stats .vowels-stat .stat-value {
+  color: #f57c00;
+}
+
+.alphabet-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.letter-button {
+  width: 100%;
+  aspect-ratio: 1;
+  font-size: 0.85rem;
+  font-weight: bold;
+  border: 2px solid #2196f3;
+  border-radius: 4px;
+  background: #fff;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.letter-button:hover:not(:disabled) {
+  background: #e3f2fd;
+  transform: scale(1.05);
+}
+
+.letter-button:disabled {
+  cursor: not-allowed;
+}
+
+.letter-button.vowel {
+  border-color: #ff9800;
+}
+
+.letter-button.vowel:hover:not(:disabled) {
+  background: #fff3e0;
+}
+
+.letter-button.vowel-disabled {
+  background: #f5f5f5;
+  border-color: #ccc;
+  color: #bbb;
+}
+
+.letter-button.used {
+  background: #e0e0e0;
+  border-color: #bbb;
+  color: #999;
+}
+
+.skip-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #fff;
+  color: #1976d2;
+  border: 2px solid #1976d2;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.skip-button:hover {
+  background: #1976d2;
+  color: #fff;
+}
+
+/* ============================================
+   WORD PHASE CONTROLS - Left Panel
+   ============================================ */
+
+.word-controls {
+  border-color: #ffcc80;
+  background: linear-gradient(135deg, #fff3e0 0%, #fff 100%);
+}
+
+.hints-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: #fff9c4;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.hints-icon {
+  font-size: 1.2rem;
+}
+
+.hints-count {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #f57c00;
+}
+
+.hints-count.empty {
+  color: #999;
+}
+
+.hints-label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.hint-tip {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+.submit-button:hover {
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);
+}
+
+/* ============================================
+   GAME COMPLETE CONTROLS - Left Panel
+   ============================================ */
+
+.complete-controls {
+  border-color: #a5d6a7;
+  background: linear-gradient(135deg, #e8f5e9 0%, #fff 100%);
+}
+
+.final-stats {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.words-result {
+  font-size: 1.1rem;
+  color: #2e7d32;
+}
+
+.words-result strong {
+  font-size: 1.4rem;
+}
+
+.perfect-badge {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.2rem;
+}
+
+.new-game-button {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: bold;
+  background: #b8860b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.new-game-button:hover {
+  background: #9a7209;
+}
+
+/* ============================================
+   GUESSED LETTERS DISPLAY - Left Panel
+   ============================================ */
+
+.guessed-letters-card {
+  border-color: #e0e0e0;
+}
+
+.guessed-letters-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.guessed-letter {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: bold;
+  border-radius: 4px;
+  border: 2px solid;
+}
+
+.guessed-letter.hit {
+  background: #e8f5e9;
+  border-color: #4caf50;
+  color: #2e7d32;
+}
+
+.guessed-letter.miss {
+  background: #ffebee;
+  border-color: #ef5350;
+  color: #c62828;
+  text-decoration: line-through;
+}
+
+/* ============================================
+   WORD COLUMNS CONTAINER - Center Panel
+   ============================================ */
+
+.word-columns-container {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 10px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+}
+
+/* ============================================
+   CASCADE STATUS - Right Panel
+   ============================================ */
+
+.cascade-card {
+  border-color: #ce93d8;
+  background: linear-gradient(135deg, #f3e5f5 0%, #fff 100%);
+}
+
+.cascade-status {
+  text-align: center;
+}
+
+.cascade-row-indicator {
+  font-size: 0.85rem;
+  color: #7b1fa2;
+  margin-bottom: 6px;
+}
+
+.cascade-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.cascade-value.pending {
+  background: #e1bee7;
+  color: #7b1fa2;
+}
+
+.cascade-value.awarded {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.cascade-value.locked {
+  background: #ffcdd2;
+  color: #c62828;
+}
+
+.cascade-word-display {
+  margin-top: 10px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.cascade-word-label {
+  font-size: 0.75rem;
+  color: #888;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.cascade-word-value {
+  font-size: 1.1rem;
+  font-weight: bold;
+  font-family: monospace;
+  letter-spacing: 2px;
+  color: #9c27b0;
+}
+
+/* ============================================
+   SCORING GUIDE - Right Panel
+   ============================================ */
+
+.scoring-card {
+  border-color: #ffcc80;
+  background: linear-gradient(135deg, #fff3e0 0%, #fff 100%);
+}
+
+.scoring-formula {
+  padding: 8px;
+  background: #e3f2fd;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #1565c0;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.scoring-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.scoring-table th,
+.scoring-table td {
+  padding: 4px 6px;
+  text-align: center;
+  border-bottom: 1px solid #ffe0b2;
+}
+
+.scoring-table th {
+  background: #ffe0b2;
+  color: #e65100;
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+.scoring-bonuses {
+  margin-top: 10px;
+  font-size: 0.8rem;
+}
+
+.scoring-bonuses p {
+  margin: 4px 0;
+  color: #555;
+}
+
+/* ============================================
+   INSTRUCTIONS - Right Panel
+   ============================================ */
+
+.instructions-card {
+  border-color: #90caf9;
+  background: linear-gradient(135deg, #e3f2fd 0%, #fff 100%);
+}
+
+.instructions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.instructions-list li {
+  padding: 4px 0;
+  color: #444;
+}
+
+.instructions-list li strong {
+  color: #1565c0;
+}
+
+.instructions-list kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-size: 0.75rem;
+  font-family: monospace;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+/* ============================================
+   SCORE BREAKDOWN - Complete Phase
+   ============================================ */
+
+.breakdown-card {
+  border-color: #a5d6a7;
+}
+
+.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.breakdown-table th,
+.breakdown-table td {
+  padding: 6px 4px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.breakdown-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.7rem;
+}
+
+.breakdown-table .label-cell {
+  font-weight: 500;
+}
+
+.breakdown-table .detail-cell {
+  color: #666;
+  font-size: 0.7rem;
+}
+
+.breakdown-table .points-cell {
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.breakdown-table .scored-row .points-cell {
+  color: #2e7d32;
+}
+
+.breakdown-table .zero-row {
+  color: #999;
+}
+
+.breakdown-table .zero-row .points-cell {
+  color: #c62828;
+}
+
+.breakdown-table tfoot tr {
+  background: #f9f9f9;
+  border-top: 2px solid #ddd;
+}
+
+.breakdown-table tfoot .points-cell {
+  font-size: 1rem;
+  color: #b8860b;
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 1.2rem;
+  color: #666;
+  height: 100vh;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #b8860b;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Tablet & Smaller
+   ============================================ */
+
+@media (max-width: 1100px) {
+  .left-panel,
+  .right-panel {
+    width: 220px;
+  }
+
+  .alphabet-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .game-main {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .left-panel,
+  .right-panel {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .panel-card {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .alphabet-grid {
+    grid-template-columns: repeat(9, 1fr);
+  }
+}

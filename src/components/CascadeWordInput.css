@@ -1,0 +1,147 @@
+.cascade-word-container {
+  background: #f8f9fa;
+  border: 2px solid #dee2e6;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px auto;
+  max-width: 400px;
+}
+
+.cascade-word-container.guessed {
+  border-color: #adb5bd;
+}
+
+.cascade-word-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cascade-label {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #495057;
+}
+
+.cascade-score {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.cascade-word-display {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: text;
+  transition: border-color 0.2s;
+}
+
+.cascade-word-display.focused {
+  border-color: #4a90d9;
+}
+
+.cascade-word-display.correct {
+  border-color: #28a745;
+  background: #d4edda;
+}
+
+.cascade-word-display.incorrect {
+  border-color: #dc3545;
+  background: #f8d7da;
+}
+
+.cascade-letter {
+  width: 40px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: "Courier New", monospace;
+  border-radius: 6px;
+  background: #e9ecef;
+  color: #495057;
+  text-transform: uppercase;
+}
+
+.cascade-letter.revealed {
+  background: #4a90d9;
+  color: white;
+}
+
+.cascade-letter.user-input {
+  background: #fff3cd;
+  color: #856404;
+  border: 2px solid #ffc107;
+}
+
+.cascade-letter.empty {
+  background: #f8f9fa;
+  color: #adb5bd;
+}
+
+.cascade-letter.missed {
+  background: #dc3545;
+  color: white;
+}
+
+.cascade-input-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.cascade-hidden-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cascade-submit-btn {
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4a90d9, #357abd);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cascade-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #357abd, #2a6192);
+  transform: translateY(-1px);
+}
+
+.cascade-submit-btn:disabled {
+  background: #adb5bd;
+  cursor: not-allowed;
+}
+
+.cascade-result {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cascade-result.correct {
+  background: #d4edda;
+  color: #155724;
+}
+
+.cascade-result.incorrect {
+  background: #f8d7da;
+  color: #721c24;
+}

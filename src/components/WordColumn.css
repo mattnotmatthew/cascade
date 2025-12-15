@@ -1,0 +1,208 @@
+.word-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f9f9f9;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.word-column.clickable {
+  cursor: pointer;
+}
+
+.word-column.clickable:hover {
+  background: #f0f0f0;
+  border-color: #ccc;
+}
+
+.word-column.selected {
+  border-color: #2196f3;
+  background: #e3f2fd;
+}
+
+.word-column.correct {
+  background: #e8f5e9;
+  border-color: #4caf50;
+}
+
+.word-column.incorrect {
+  background: #ffebee;
+  border-color: #f44336;
+}
+
+.word-column.auto-completed {
+  animation: autoComplete 0.5s ease;
+}
+
+@keyframes autoComplete {
+  0% {
+    background: #fff9c4;
+  }
+  100% {
+    background: #e8f5e9;
+  }
+}
+
+.key-letter {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #b8860b;
+  margin-bottom: 4px;
+}
+
+.letter-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.letter-cell {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 4px;
+  border: 2px solid #ccc;
+  background: #fff;
+  color: #1a1a1a;
+  transition: all 0.2s ease;
+}
+
+.letter-cell.revealed {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  animation: revealLetter 0.3s ease;
+}
+
+.letter-cell.hidden {
+  background: #fff;
+  border-color: #ddd;
+}
+
+.letter-cell.user-input {
+  background: #fff3e0;
+  border-color: #ff9800;
+  color: #e65100;
+}
+
+.letter-cell.editable {
+  cursor: pointer;
+}
+
+.letter-cell.editable:hover {
+  border-color: #ff9800;
+  background: #fff8e1;
+}
+
+.letter-cell.cell-selected {
+  border-color: #ff5722;
+  background: #fff3e0;
+  box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.3);
+  animation: cellPulse 1s ease-in-out infinite;
+}
+
+@keyframes cellPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 87, 34, 0.2);
+  }
+}
+
+.letter-cell.cascade-highlight {
+  border-color: #9c27b0;
+  box-shadow: 0 0 0 2px rgba(156, 39, 176, 0.2);
+}
+
+.letter-cell.cascade-highlight.revealed {
+  background: #e1bee7;
+  border-color: #9c27b0;
+}
+
+@keyframes revealLetter {
+  0% {
+    transform: scale(1.1);
+    background: #bbdefb;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Wrong guess cells - keep user input visible but indicate error */
+.letter-cell.wrong-guess {
+  background: #ffebee;
+  border-color: #ef9a9a;
+  color: #c62828;
+}
+
+/* Correct word reveal below incorrect columns */
+.correct-word-reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: #e8f5e9;
+  border-radius: 4px;
+  border: 1px solid #a5d6a7;
+}
+
+.correct-word-label {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.correct-word-text {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #2e7d32;
+  letter-spacing: 1px;
+}
+
+/* Hint-able cells - show visual indicator when hints are available */
+.letter-cell.can-hint {
+  position: relative;
+}
+
+.letter-cell.can-hint::after {
+  content: "💡";
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 0.6rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.letter-cell.can-hint:hover::after {
+  opacity: 1;
+}
+
+/* Revealed by hint - slightly different style */
+.letter-cell.revealed.hint-revealed {
+  background: #fff9c4;
+  border-color: #ffc107;
+  animation: hintReveal 0.4s ease;
+}
+
+@keyframes hintReveal {
+  0% {
+    transform: scale(1.15);
+    background: #ffeb3b;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
