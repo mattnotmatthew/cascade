@@ -164,10 +164,10 @@ CREATE INDEX idx_daily_attempts_leaderboard
   WHERE completed_at IS NOT NULL;
 ```
 
-### Leaderboard View
+### Daily Leaderboard View
 
 ```sql
--- Materialized view for fast leaderboard queries
+-- View for daily leaderboard (rankings for a specific puzzle date)
 CREATE OR REPLACE VIEW public.daily_leaderboard AS
 SELECT
   da.puzzle_date,
@@ -190,7 +190,11 @@ WHERE da.completed_at IS NOT NULL;
 GRANT SELECT ON public.daily_leaderboard TO anon, authenticated;
 ```
 
-### All-Time Stats Table (Optional)
+**Usage:** Query with `WHERE puzzle_date = '2025-01-15'` to get that day's rankings.
+
+---
+
+### All-Time Stats Table
 
 ```sql
 -- Aggregated stats per user (updated via trigger)
@@ -262,6 +266,36 @@ CREATE TRIGGER on_game_completed
   AFTER UPDATE ON public.daily_attempts
   FOR EACH ROW EXECUTE FUNCTION public.update_user_stats();
 ```
+
+### All-Time Leaderboard View
+
+```sql
+-- View for all-time leaderboard (best scores across all days)
+CREATE OR REPLACE VIEW public.alltime_leaderboard AS
+SELECT
+  us.user_id,
+  p.display_name,
+  p.username,
+  us.best_score,
+  us.total_score,
+  us.total_games,
+  us.current_streak,
+  us.longest_streak,
+  us.last_played_date,
+  RANK() OVER (ORDER BY us.best_score DESC) as rank_by_best,
+  RANK() OVER (ORDER BY us.total_score DESC) as rank_by_total
+FROM public.user_stats us
+JOIN public.profiles p ON us.user_id = p.id
+WHERE us.total_games > 0;
+
+-- Allow anyone to read the all-time leaderboard
+GRANT SELECT ON public.alltime_leaderboard TO anon, authenticated;
+```
+
+**Usage options:**
+- `ORDER BY rank_by_best` - Rank by highest single-game score
+- `ORDER BY rank_by_total` - Rank by cumulative score across all games
+- `ORDER BY longest_streak DESC` - Rank by best streak
 
 ---
 
@@ -412,26 +446,27 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 │   (Supabase)    │     │                  │     │                 │
 │                 │     │ - display_name   │     │ - total_games   │
 │ - id            │     │ - username       │     │ - best_score    │
-│ - email         │     │                  │     │ - streaks       │
-└────────┬────────┘     └──────────────────┘     └─────────────────┘
-         │
-         │
-         ▼
-┌─────────────────────┐
-│   daily_attempts    │
-│                     │
-│ - puzzle_date       │
-│ - score             │
-│ - move_history      │
-│ - completed_at      │
-│                     │
-│ UNIQUE(user, date)  │◀── Enforces one attempt per day
+│ - email         │     │                  │     │ - total_score   │
+└────────┬────────┘     └──────────────────┘     │ - streaks       │
+         │                                       └────────┬────────┘
+         │                                                │
+         ▼                                                ▼
+┌─────────────────────┐                    ┌───────────────────────┐
+│   daily_attempts    │                    │ alltime_leaderboard   │ (VIEW)
+│                     │                    │                       │
+│ - puzzle_date       │                    │ - rank_by_best        │
+│ - score             │                    │ - rank_by_total       │
+│ - move_history      │                    │ - display_name        │
+│ - completed_at      │                    │ - best_score          │
+│                     │                    │ - total_score         │
+│ UNIQUE(user, date)  │◀── One per day     └───────────────────────┘
 └─────────────────────┘
          │
          ▼
 ┌─────────────────────┐
 │  daily_leaderboard  │  (VIEW)
 │                     │
+│ - puzzle_date       │
 │ - rank              │
 │ - display_name      │
 │ - score             │
