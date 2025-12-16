@@ -23,7 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Documentation (except README and setup guides)
+# Documentation (except key docs)
 *.md
 !README.md
 !SUPABASE_SETUP.md
+!ANTI-CHEAT.md
