@@ -112,6 +112,43 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 ```
 
+### Puzzles Table
+
+```sql
+-- Stores daily puzzles (replaces static JSON files)
+CREATE TABLE public.puzzles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  puzzle_date DATE UNIQUE NOT NULL,
+
+  -- Puzzle content
+  seed_word TEXT NOT NULL,           -- 5-letter starting word
+  cascade_word TEXT NOT NULL,        -- 5-letter cascade/bonus word
+  cascade_row INTEGER NOT NULL,      -- Which row (1, 2, or 3)
+  column_words TEXT[] NOT NULL,      -- Array of 5 column words
+
+  -- Metadata
+  theme TEXT,                        -- Optional theme hint
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_by UUID REFERENCES auth.users(id)
+);
+
+-- Enable RLS
+ALTER TABLE public.puzzles ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can view today's puzzle or past puzzles (not future)
+CREATE POLICY "Can view today or past puzzles"
+  ON public.puzzles FOR SELECT
+  USING (puzzle_date <= CURRENT_DATE);
+
+-- Only admins can insert/update puzzles (you'll grant this manually)
+-- For now, use the Supabase dashboard or service role key to add puzzles
+
+-- Index for fast date lookups
+CREATE INDEX idx_puzzles_date ON public.puzzles(puzzle_date);
+```
+
+**Note:** To add puzzles, use the Supabase dashboard Table Editor or the service role key. Regular users cannot insert puzzles due to RLS.
+
 ### Daily Attempts Table
 
 ```sql
@@ -456,23 +493,25 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ┌─────────────────────┐                    ┌───────────────────────┐
 │   daily_attempts    │                    │ alltime_leaderboard   │ (VIEW)
 │                     │                    │                       │
-│ - puzzle_date       │                    │ - rank_by_best        │
-│ - score             │                    │ - rank_by_total       │
-│ - move_history      │                    │ - display_name        │
-│ - completed_at      │                    │ - best_score          │
-│                     │                    │ - total_score         │
-│ UNIQUE(user, date)  │◀── One per day     └───────────────────────┘
-└─────────────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│  daily_leaderboard  │  (VIEW)
-│                     │
-│ - puzzle_date       │
-│ - rank              │
-│ - display_name      │
-│ - score             │
-└─────────────────────┘
+│ - puzzle_date ──────┼──────┐             │ - rank_by_best        │
+│ - score             │      │             │ - rank_by_total       │
+│ - move_history      │      │             │ - display_name        │
+│ - completed_at      │      │             │ - best_score          │
+│                     │      │             │ - total_score         │
+│ UNIQUE(user, date)  │◀─────┼─ One per day└───────────────────────┘
+└─────────────────────┘      │
+         │                   │
+         ▼                   ▼
+┌─────────────────────┐    ┌─────────────────────┐
+│  daily_leaderboard  │    │      puzzles        │
+│       (VIEW)        │    │                     │
+│                     │    │ - puzzle_date       │◀── RLS: only today
+│ - puzzle_date       │    │ - seed_word         │    or past visible
+│ - rank              │    │ - cascade_word      │
+│ - display_name      │    │ - cascade_row       │
+│ - score             │    │ - column_words[]    │
+└─────────────────────┘    │ - theme             │
+                           └─────────────────────┘
 ```
 
 ---

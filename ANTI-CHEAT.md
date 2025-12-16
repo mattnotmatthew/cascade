@@ -49,14 +49,14 @@ This document outlines potential cheating vectors and countermeasures for the CA
 
 **The Problem:** Puzzle JSON files are publicly accessible at `/puzzles/YYYY-MM-DD.json`. A player can simply fetch the file and see all answers.
 
-**Status:** SOLVABLE by storing puzzles in Supabase
+**Status:** SOLVED by Supabase puzzles table
 
-**Solution:** Move puzzles from static JSON files to a Supabase `puzzles` table with Row Level Security:
-- Only serve today's puzzle (or past puzzles)
-- Future puzzles are hidden
-- Answers can be omitted from the response until game completion
+**Solution:** Puzzles stored in Supabase `puzzles` table with Row Level Security:
+- RLS policy: `puzzle_date <= CURRENT_DATE`
+- Future puzzles are completely hidden
+- No public URL to inspect
 
-**Current state:** Not yet implemented. Puzzles are still static JSON.
+**Note:** Players can still see today's answers if they inspect the network response, but they can only use that knowledge once (one attempt per day). This is an acceptable trade-off.
 
 ---
 
@@ -91,7 +91,7 @@ This document outlines potential cheating vectors and countermeasures for the CA
 | User accounts | Supabase Auth | Required for all protections |
 | One attempt per day | Database constraint | `UNIQUE(user_id, puzzle_date)` |
 | Server-side leaderboard | Supabase views | `daily_leaderboard`, `alltime_leaderboard` |
-| Puzzle storage in DB | Not yet | Would hide answers from network inspection |
+| Puzzle storage in DB | Documented | `puzzles` table with RLS - hides future puzzles |
 | Server-side scoring | Optional | Edge Function for full cheat-proofing |
 | localStorage for UX | Still needed | Mid-game state persistence |
 
@@ -103,10 +103,10 @@ With Supabase:
 - **One attempt per day is bulletproof** (database-enforced)
 - **Incognito/clear storage is irrelevant** (tied to user account)
 - **Leaderboards are server-authoritative** (can't fake localStorage scores)
-- **Viewing answers is still possible** (if puzzles remain as static JSON)
+- **Viewing future answers is blocked** (puzzles table with RLS)
 - **Submitting fake scores is possible once** (without Edge Function)
 
-For a casual daily puzzle game, this is more than sufficient. The Edge Function and puzzle-in-DB options exist if cheating becomes a visible problem.
+For a casual daily puzzle game, this is more than sufficient. The Edge Function is optional for full cheat-proofing if needed later.
 
 ---
 
@@ -115,6 +115,6 @@ For a casual daily puzzle game, this is more than sufficient. The Edge Function 
 - [x] User accounts (Supabase Auth)
 - [x] One attempt per day (database constraint)
 - [x] Server-side leaderboards (Supabase views)
-- [ ] Store puzzles in Supabase (hides answers)
+- [x] Store puzzles in Supabase (hides future answers via RLS)
 - [ ] localStorage for in-progress game state
 - [ ] Server-side score validation (Edge Function - optional)
