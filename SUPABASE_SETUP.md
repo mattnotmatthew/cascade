@@ -299,9 +299,11 @@ GRANT SELECT ON public.alltime_leaderboard TO anon, authenticated;
 
 ---
 
-## Step 5: Create Server-Side Score Validation (Edge Function)
+## Step 5: Server-Side Score Validation (OPTIONAL - Future Enhancement)
 
-This is crucial for preventing score manipulation. Supabase Edge Functions run on the server.
+> **Skip this step for initial setup.** The database already enforces one attempt per day per user, which prevents most cheating. Add this later if you see score manipulation on leaderboards or add competitive stakes.
+
+This optional step adds server-side score validation using Supabase Edge Functions. Instead of trusting the client-submitted score, the server recalculates it from move history.
 
 1. Install Supabase CLI (if not installed):
    ```bash
