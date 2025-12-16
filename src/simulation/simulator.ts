@@ -96,7 +96,7 @@ export function simulateGame(
   let vowelsUsed = 0;
   let totalHits = 0;
   let currentStreak = 0;
-  let streakBonusTotal = 0;
+  let lastHits = 0; // Hits from the previous letter guess
 
   // Track revealed letters per word (copy of initial state)
   const revealed: boolean[][] = puzzle.words.map((w) => [...w.revealed]);
@@ -156,6 +156,7 @@ export function simulateGame(
     const isHit = isLetterHit(nextLetter, puzzle.words);
     const hits = countLetterHits(nextLetter, puzzle.words);
     totalHits += hits;
+    lastHits = hits; // Track for next iteration's state
 
     let streakBonus = 0;
     if (isHit) {
@@ -164,7 +165,6 @@ export function simulateGame(
     } else {
       currentStreak = 0;
     }
-    streakBonusTotal += streakBonus;
     letterPhaseScore += streakBonus;
 
     // Reveal the letter in all words
