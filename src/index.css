@@ -1,28 +1,320 @@
+/* ============================================
+   CASCADE - MIDNIGHT DESIGN SYSTEM
+   A dark, premium word game aesthetic
+   ============================================ */
+
+/* Google Fonts imports */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
 :root {
-  font-family: "Segoe UI", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+  --font-ui: 'Outfit', -apple-system, sans-serif;
+
+  /* Color Palette - Midnight Theme */
+  --color-bg-deep: #0a0f1a;
+  --color-bg-base: #0f1419;
+  --color-bg-surface: #1a1f2e;
+  --color-bg-elevated: #232936;
+  --color-bg-hover: #2d3548;
+
+  /* Text Colors */
+  --color-text-primary: #f0f4f8;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+
+  /* Accent Colors */
+  --color-cascade: #00d4ff;
+  --color-cascade-glow: rgba(0, 212, 255, 0.4);
+  --color-gold: #fbbf24;
+  --color-gold-glow: rgba(251, 191, 36, 0.3);
+  --color-amber: #f59e0b;
+
+  /* State Colors */
+  --color-success: #10b981;
+  --color-success-glow: rgba(16, 185, 129, 0.3);
+  --color-error: #f87171;
+  --color-error-glow: rgba(248, 113, 113, 0.3);
+  --color-warning: #fbbf24;
+
+  /* Interactive Colors */
+  --color-vowel: #f97316;
+  --color-vowel-glow: rgba(249, 115, 22, 0.3);
+  --color-consonant: #3b82f6;
+  --color-consonant-glow: rgba(59, 130, 246, 0.3);
+
+  /* Cascade/Bonus */
+  --color-bonus: #a855f7;
+  --color-bonus-glow: rgba(168, 85, 247, 0.4);
+
+  /* Glass Effect */
+  --glass-bg: rgba(26, 31, 46, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(12px);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow-cascade: 0 0 20px var(--color-cascade-glow), 0 0 40px var(--color-cascade-glow);
+  --shadow-glow-gold: 0 0 15px var(--color-gold-glow);
+  --shadow-glow-success: 0 0 20px var(--color-success-glow);
+
+  /* Borders */
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.06);
+  --border-medium: 1px solid rgba(255, 255, 255, 0.1);
+  --border-accent: 2px solid var(--color-cascade);
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.4s ease;
+  --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Z-index layers */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-modal: 200;
+  --z-tooltip: 300;
+
+  /* Standard properties */
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light;
-  color: #1a1a1a;
-  background-color: #f5f5f5;
-
+  color-scheme: dark;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-deep);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
+/* ============================================
+   LIGHT MODE THEME
+   ============================================ */
+[data-theme="light"] {
+  /* Color Palette - Light Theme */
+  --color-bg-deep: #f8fafc;
+  --color-bg-base: #f1f5f9;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover: #e2e8f0;
+
+  /* Text Colors */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  /* Accent Colors - Slightly adjusted for light backgrounds */
+  --color-cascade: #0891b2;
+  --color-cascade-glow: rgba(8, 145, 178, 0.25);
+  --color-gold: #d97706;
+  --color-gold-glow: rgba(217, 119, 6, 0.2);
+  --color-amber: #b45309;
+
+  /* State Colors */
+  --color-success: #059669;
+  --color-success-glow: rgba(5, 150, 105, 0.2);
+  --color-error: #dc2626;
+  --color-error-glow: rgba(220, 38, 38, 0.2);
+  --color-warning: #d97706;
+
+  /* Interactive Colors */
+  --color-vowel: #ea580c;
+  --color-vowel-glow: rgba(234, 88, 12, 0.2);
+  --color-consonant: #2563eb;
+  --color-consonant-glow: rgba(37, 99, 235, 0.2);
+
+  /* Cascade/Bonus */
+  --color-bonus: #7c3aed;
+  --color-bonus-glow: rgba(124, 58, 237, 0.25);
+
+  /* Glass Effect */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-blur: blur(12px);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+  --shadow-glow-cascade: 0 0 20px var(--color-cascade-glow), 0 0 40px var(--color-cascade-glow);
+  --shadow-glow-gold: 0 0 15px var(--color-gold-glow);
+  --shadow-glow-success: 0 0 20px var(--color-success-glow);
+
+  /* Borders */
+  --border-subtle: 1px solid rgba(0, 0, 0, 0.06);
+  --border-medium: 1px solid rgba(0, 0, 0, 0.1);
+  --border-accent: 2px solid var(--color-cascade);
+
+  /* Override color-scheme */
+  color-scheme: light;
+}
+
+[data-theme="light"] body {
+  background: var(--color-bg-deep);
+}
+
+/* Hide noise texture in light mode */
+[data-theme="light"] body::before {
+  opacity: 0.015;
+}
+
+/* Reset & Base */
+*, *::before, *::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-ui);
+  font-size: 16px;
 }
 
 body {
-  margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: var(--color-bg-deep);
+  overflow-x: hidden;
 }
 
 #root {
   min-height: 100vh;
+  position: relative;
+}
+
+/* Selection styling */
+::selection {
+  background: var(--color-cascade);
+  color: var(--color-bg-deep);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+  border-radius: 4px;
+  border: 2px solid var(--color-bg-surface);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-cascade);
+  outline-offset: 2px;
+}
+
+/* Button reset */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+/* Utility animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--color-cascade-glow);
+  }
+  50% {
+    box-shadow: 0 0 30px var(--color-cascade-glow), 0 0 50px var(--color-cascade-glow);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Noise texture overlay - applied to body via pseudo-element */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
 }

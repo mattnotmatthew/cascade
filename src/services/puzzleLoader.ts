@@ -61,6 +61,12 @@ export function savedPuzzleToGamePuzzle(saved: SavedPuzzle): Puzzle {
     cascadeAwarded: false,
     hintsRemaining: 3,
     maxHints: 3,
+    // v2 scoring fields
+    currentStreak: 0,
+    streakBonusEarned: 0,
+    hintsUsedTotal: 0,
+    // Theme from curated puzzle
+    theme: saved.metadata?.theme,
   };
 }
 

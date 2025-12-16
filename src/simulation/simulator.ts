@@ -11,14 +11,22 @@ import type {
 import { generatePuzzle, isVowel } from "../utils/gameLogic";
 import type { PuzzleWord } from "../types/game";
 
-// Default scoring config (matches current implementation)
+// Default scoring config v2 (matches current implementation)
 const DEFAULT_SCORING_CONFIG: ScoringConfig = {
-  letterHitBonus: 0, // Removed to balance strategies
-  blankMultiplier: 0.75, // Each blank adds 0.75 to multiplier: base × (1 + 0.75 × blanks)
-  autoCompleteBonus: 50, // Extra points when word is auto-completed
+  // Letter phase - streak bonuses
+  streakBonuses: [0, 0, 15, 25, 40, 50, 50], // Index = streak length
   maxLetterGuesses: 6,
   maxVowels: 2,
-  cascadeBonus: 500,
+
+  // Word phase
+  blankMultiplier: 0.75, // Each blank adds 0.75 to multiplier
+  autoCompleteBonus: 75, // Extra points when word is auto-completed
+  hintPenalties: [0, 0.35, 0.5], // First hint free, then escalating
+
+  // Cascade - now percentage amplifier instead of flat bonus
+  cascadeAmplifier: 0.25, // 25% of total word score
+
+  // Word base scores
   wordScoring: [
     { baseScore: 100 }, // Position 0: 4 letters
     { baseScore: 150 }, // Position 1: 5 letters
@@ -30,6 +38,15 @@ const DEFAULT_SCORING_CONFIG: ScoringConfig = {
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
+// Get streak bonus for a given streak length
+function getStreakBonus(streakLength: number, config: ScoringConfig): number {
+  if (streakLength < 0) return 0;
+  if (streakLength >= config.streakBonuses.length) {
+    return config.streakBonuses[config.streakBonuses.length - 1];
+  }
+  return config.streakBonuses[streakLength];
+}
+
 // Calculate word score: base × (1 + blankMultiplier × blanks)
 // Auto-complete: base + autoCompleteBonus
 function calculateWordScore(
@@ -39,13 +56,19 @@ function calculateWordScore(
   isAutoComplete: boolean = false
 ): number {
   const wordConfig = config.wordScoring[position];
+  if (isAutoComplete) {
+    return wordConfig.baseScore + config.autoCompleteBonus;
+  }
   if (blanks === 0) {
-    return (
-      wordConfig.baseScore + (isAutoComplete ? config.autoCompleteBonus : 0)
-    );
+    return wordConfig.baseScore;
   }
   const multiplier = 1 + config.blankMultiplier * blanks;
   return Math.round(wordConfig.baseScore * multiplier);
+}
+
+// Check if letter appears in any word (excluding position 0)
+function isLetterHit(letter: string, words: PuzzleWord[]): boolean {
+  return words.some((w) => w.word.slice(1).includes(letter));
 }
 
 // Count how many words contain a letter (excluding position 0)
@@ -72,7 +95,8 @@ export function simulateGame(
   const lettersGuessed: string[] = [];
   let vowelsUsed = 0;
   let totalHits = 0;
-  let lastHits = 0;
+  let currentStreak = 0;
+  let streakBonusTotal = 0;
 
   // Track revealed letters per word (copy of initial state)
   const revealed: boolean[][] = puzzle.words.map((w) => [...w.revealed]);
@@ -128,13 +152,20 @@ export function simulateGame(
       availableVowels = availableVowels.filter((l) => l !== nextLetter);
     }
 
-    // Count hits and reveal letters
+    // Check if letter is a hit and calculate streak bonus
+    const isHit = isLetterHit(nextLetter, puzzle.words);
     const hits = countLetterHits(nextLetter, puzzle.words);
-    lastHits = hits;
     totalHits += hits;
 
-    const hitBonus = hits * config.letterHitBonus;
-    letterPhaseScore += hitBonus;
+    let streakBonus = 0;
+    if (isHit) {
+      currentStreak++;
+      streakBonus = getStreakBonus(currentStreak, config);
+    } else {
+      currentStreak = 0;
+    }
+    streakBonusTotal += streakBonus;
+    letterPhaseScore += streakBonus;
 
     // Reveal the letter in all words
     puzzle.words.forEach((word, wordIndex) => {
@@ -147,7 +178,7 @@ export function simulateGame(
 
     if (verbose) {
       console.log(
-        `Guessed '${nextLetter}': ${hits} hits, +${hitBonus} pts (total: ${letterPhaseScore})`
+        `Guessed '${nextLetter}': ${isHit ? "HIT" : "MISS"} (streak: ${currentStreak}), +${streakBonus} pts (total: ${letterPhaseScore})`
       );
     }
   }
@@ -238,13 +269,14 @@ export function simulateGame(
     }
   });
 
-  // === CASCADE BONUS ===
+  // === CASCADE AMPLIFIER ===
   const cascadeEarned =
     cascadeRowCorrect.length === 5 && cascadeRowCorrect.every((c) => c);
   if (cascadeEarned) {
-    cascadeBonus = config.cascadeBonus;
+    // v2: Cascade is percentage of word phase score
+    cascadeBonus = Math.round(wordPhaseScore * config.cascadeAmplifier);
     if (verbose) {
-      console.log(`CASCADE BONUS: +${cascadeBonus} pts!`);
+      console.log(`CASCADE AMPLIFIER: +${cascadeBonus} pts (${config.cascadeAmplifier * 100}% of word score)!`);
     }
   }
 

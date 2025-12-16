@@ -84,6 +84,52 @@ export const COLUMN_CONFIG = [
 
 export const EXPECTED_LENGTHS = [4, 5, 5, 5, 6] as const;
 
+// ==========================================
+// Bulk Puzzle Creator Types
+// ==========================================
+
+export type ReviewMode = "full" | "quick" | "auto";
+
+export interface BulkBatchConfig {
+  startDate: string; // YYYY-MM-DD
+  numberOfDays: number; // 1-31
+  reviewMode: ReviewMode;
+}
+
+export interface BulkPuzzleEntry {
+  date: string; // YYYY-MM-DD
+  cascadeWord: string;
+  seedWord: string;
+  cascadeRow: 1 | 2 | 3;
+  columnWords: string[];
+  columnOptions: string[][]; // All options per column for swapping
+  status: "pending" | "generating" | "generated" | "reviewed" | "error";
+  errorMessage?: string;
+  theme?: string;
+}
+
+export interface BulkBatch {
+  id: string;
+  config: BulkBatchConfig;
+  puzzles: BulkPuzzleEntry[];
+  currentPuzzleIndex: number; // For full review navigation
+  createdAt: string;
+  lastModified: string;
+}
+
+export interface ThemePair {
+  cascadeWord: string;
+  seedWord: string;
+  description?: string;
+}
+
+export interface ThemeDefinition {
+  id: string;
+  name: string;
+  icon: string;
+  pairs: ThemePair[];
+}
+
 // Helper to create initial state
 export function createInitialCreatorState(): PuzzleCreatorState {
   return {

@@ -41,15 +41,27 @@ export interface SimulationConfig {
   scoringOverrides?: Partial<ScoringConfig>;
 }
 
-// Scoring configuration (mirrors gameLogic.ts)
+// Scoring configuration v2 (mirrors gameLogic.ts)
 export interface ScoringConfig {
-  letterHitBonus: number;
-  blankMultiplier: number; // Each blank adds this to the multiplier (e.g., 0.5)
-  autoCompleteBonus: number; // Extra points when word is auto-completed
+  // Letter phase
+  streakBonuses: number[]; // Bonus per streak length [0, 0, 15, 25, 40, 50, 50]
   maxLetterGuesses: number;
   maxVowels: number;
-  cascadeBonus: number;
+
+  // Word phase
+  blankMultiplier: number; // Each blank adds this to the multiplier (e.g., 0.75)
+  autoCompleteBonus: number; // Extra points when word is auto-completed (75)
+  hintPenalties: number[]; // Escalating: [0, 0.35, 0.50] - first hint free
+
+  // Cascade
+  cascadeAmplifier: number; // Percentage of word score (0.25 = 25%)
+
+  // Word base scores
   wordScoring: Array<{ baseScore: number }>;
+
+  // Legacy (deprecated, kept for compatibility)
+  letterHitBonus?: number;
+  cascadeBonus?: number;
 }
 
 // Results from a single simulated game

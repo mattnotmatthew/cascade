@@ -173,6 +173,115 @@ class DatamuseService {
     // Limit to top 25 high-frequency words
     return themeWords.slice(0, 25);
   }
+
+  /**
+   * Find words matching a pattern using Datamuse's spelled-like (sp) parameter
+   * Pattern format: use ? for any letter
+   * Examples:
+   *   - "s?o?" → 4-letter words starting with S, O at position 2
+   *   - "to???" → 5-letter words starting with TO
+   *   - "m??n??" → 6-letter words starting with M, N at position 3
+   */
+  async findWordsByPattern(
+    pattern: string,
+    maxResults = 100
+  ): Promise<string[]> {
+    const cacheKey = `datamuse:pattern:${pattern}`;
+    const cached = getCached<string[]>(cacheKey);
+    if (cached) {
+      console.log("[Datamuse] Cache hit for pattern:", pattern);
+      return cached;
+    }
+
+    try {
+      console.log("[Datamuse] Fetching pattern:", pattern);
+      const params = new URLSearchParams({
+        sp: pattern,
+        max: String(maxResults),
+        md: "f", // Include frequency metadata
+      });
+
+      const response = await fetch(`${API_BASE}/words?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`Datamuse error: ${response.status}`);
+      }
+
+      const data: DatamuseWord[] = await response.json();
+
+      // Filter to exact length match and sort by frequency
+      const expectedLength = pattern.length;
+      const wordsWithFreq = data
+        .map((item) => ({
+          word: item.word.toLowerCase(),
+          frequency: extractFrequency(item.tags),
+        }))
+        .filter((item) => {
+          // Only single words matching exact length
+          if (!/^[a-z]+$/.test(item.word)) return false;
+          if (item.word.length !== expectedLength) return false;
+          return true;
+        })
+        .sort((a, b) => b.frequency - a.frequency);
+
+      const words = wordsWithFreq.map((item) => item.word.toUpperCase());
+
+      console.log(
+        `[Datamuse] Pattern "${pattern}" returned ${words.length} words`
+      );
+
+      setCache(cacheKey, words);
+      return words;
+    } catch (error) {
+      console.error("[Datamuse] Pattern search failed:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Build a pattern for finding column words
+   * @param seedLetter - First letter of the word (from seed word)
+   * @param cascadeLetter - Letter that must appear at cascadeRow position
+   * @param cascadeRow - Row position (1, 2, or 3) where cascade letter appears
+   * @param wordLength - Total word length (4, 5, or 6)
+   */
+  buildColumnPattern(
+    seedLetter: string,
+    cascadeLetter: string,
+    cascadeRow: 1 | 2 | 3,
+    wordLength: number
+  ): string {
+    // Build pattern like "s?o?" for seedLetter=S, cascadeLetter=O, row=2, length=4
+    let pattern = "";
+    for (let i = 0; i < wordLength; i++) {
+      if (i === 0) {
+        pattern += seedLetter.toLowerCase();
+      } else if (i === cascadeRow) {
+        pattern += cascadeLetter.toLowerCase();
+      } else {
+        pattern += "?";
+      }
+    }
+    return pattern;
+  }
+
+  /**
+   * Get all valid column words for a specific column configuration
+   */
+  async getColumnWords(
+    seedLetter: string,
+    cascadeLetter: string,
+    cascadeRow: 1 | 2 | 3,
+    wordLength: number
+  ): Promise<string[]> {
+    const pattern = this.buildColumnPattern(
+      seedLetter,
+      cascadeLetter,
+      cascadeRow,
+      wordLength
+    );
+    return this.findWordsByPattern(pattern);
+  }
 }
 
 export const datamuseApi = new DatamuseService();

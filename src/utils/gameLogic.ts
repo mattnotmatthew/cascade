@@ -9,8 +9,11 @@ import {
 
 const VOWELS = ["A", "E", "I", "O", "U"];
 
-// Scoring configuration based on position (5 columns)
-// New simplified system: base scores only, multiplier calculated from blanks
+// =============================================================================
+// SCORING CONFIGURATION v2
+// =============================================================================
+
+// Base scores by position (5 columns)
 const SCORING_CONFIG = [
   { baseScore: 100 }, // Position 0: 4 letters
   { baseScore: 150 }, // Position 1: 5 letters
@@ -19,16 +22,54 @@ const SCORING_CONFIG = [
   { baseScore: 200 }, // Position 4: 6 letters
 ];
 
-// Letter hit bonus - REMOVED to balance aggressive vs conservative strategies
-// Previously gave aggressive players ~1000 extra pts, causing imbalance
-const LETTER_HIT_BONUS = 0;
+// Letter Hit Streak Bonuses
+// First hit is luck (0 pts), subsequent consecutive hits reward skill
+const STREAK_BONUSES = [0, 0, 15, 25, 40, 50, 50]; // Index = streak length, value = bonus
+// streak 0-1: 0 pts (first hit is luck)
+// streak 2: +15 pts (starting to read the board)
+// streak 3: +25 pts (good pattern recognition)
+// streak 4: +40 pts (skilled play)
+// streak 5+: +50 pts each (mastery)
+
+function getStreakBonus(streakLength: number): number {
+  if (streakLength < 0) return 0;
+  if (streakLength >= STREAK_BONUSES.length) {
+    return STREAK_BONUSES[STREAK_BONUSES.length - 1]; // Cap at max
+  }
+  return STREAK_BONUSES[streakLength];
+}
 
 // Blank multiplier - each blank adds this to the multiplier
 // Formula: base × (1 + BLANK_MULTIPLIER × blanks)
 const BLANK_MULTIPLIER = 0.75;
 
 // Auto-complete bonus - extra points when word is revealed through letter guessing
-const AUTO_COMPLETE_BONUS = 50;
+const AUTO_COMPLETE_BONUS = 75; // Increased from 50 to reward full reveals
+
+// Escalating Hint Penalties
+// First hint is FREE, subsequent hints have escalating costs
+const HINT_PENALTIES = [0, 0.35, 0.50]; // Index = hint number (0-indexed), value = penalty
+
+function getHintPenalty(hintNumber: number): number {
+  if (hintNumber < 0) return 0;
+  if (hintNumber >= HINT_PENALTIES.length) {
+    return HINT_PENALTIES[HINT_PENALTIES.length - 1]; // Cap at max penalty
+  }
+  return HINT_PENALTIES[hintNumber];
+}
+
+// Calculate total hint penalty for a word based on how many hints used
+function calculateTotalHintPenalty(hintsUsed: number, hintsUsedBefore: number): number {
+  let totalPenalty = 0;
+  for (let i = 0; i < hintsUsed; i++) {
+    // The hint number in the game is hintsUsedBefore + i
+    totalPenalty += getHintPenalty(hintsUsedBefore + i);
+  }
+  return totalPenalty;
+}
+
+// Cascade Amplifier - percentage of total word score instead of flat bonus
+const CASCADE_AMPLIFIER = 0.25; // 25% of total word score
 
 export function isVowel(letter: string): boolean {
   return VOWELS.includes(letter.toUpperCase());
@@ -230,30 +271,38 @@ export function generatePuzzle(): Puzzle {
     cascadeAwarded: false,
     hintsRemaining: 3,
     maxHints: 3,
+    // v2 scoring fields
+    currentStreak: 0,
+    streakBonusEarned: 0,
+    hintsUsedTotal: 0,
   };
 }
 
-// Hint penalty - each hint reduces the multiplier by this amount
-const HINT_PENALTY = 0.25;
-
+// Calculate word score with v2 escalating hint penalties
 function calculateWordScore(
   wordIndex: number,
   blanksAtWordPhase: number,
   hintsUsed: number = 0,
+  hintsUsedBefore: number = 0, // How many hints were used before this word
   isAutoComplete: boolean = false
 ): number {
   const config = SCORING_CONFIG[wordIndex];
-  // Formula: base × ((1 + 0.75 × blanks) - (0.25 × hints))
+
   // Auto-complete: base + autoCompleteBonus (no hint penalty applies)
-  // 0 blanks: just base score
   if (isAutoComplete) {
     return config.baseScore + AUTO_COMPLETE_BONUS;
   }
+
+  // 0 blanks: just base score (hints don't apply since no multiplier to reduce)
   if (blanksAtWordPhase === 0) {
     return config.baseScore;
   }
-  const multiplier =
-    1 + BLANK_MULTIPLIER * blanksAtWordPhase - HINT_PENALTY * hintsUsed;
+
+  // Calculate escalating hint penalty
+  const totalHintPenalty = calculateTotalHintPenalty(hintsUsed, hintsUsedBefore);
+
+  // Formula: base × (1 + 0.75 × blanks - escalating_hint_penalty)
+  const multiplier = Math.max(0.1, 1 + BLANK_MULTIPLIER * blanksAtWordPhase - totalHintPenalty);
   return Math.round(config.baseScore * multiplier);
 }
 
@@ -272,7 +321,8 @@ function checkAndAutoComplete(
     const allRevealed = puzzleWord.revealed.every((r) => r);
     if (allRevealed) {
       // Auto-complete! Score with 0 blanks + auto-complete bonus
-      const wordScore = calculateWordScore(index, 0, 0, true);
+      // Args: wordIndex, blanksAtWordPhase, hintsUsed, hintsUsedBefore, isAutoComplete
+      const wordScore = calculateWordScore(index, 0, 0, 0, true);
       score += wordScore;
 
       return {
@@ -310,16 +360,30 @@ export function guessLetter(puzzle: Puzzle, letter: string): Puzzle {
   const newGuessedVowels =
     puzzle.guessedVowels + (isVowel(upperLetter) ? 1 : 0);
 
-  // Calculate letter hit bonus - count how many words contain this letter
-  // EXCLUDING the first position (key letter) since it's already revealed
-  let letterHitBonus = 0;
+  // Check if letter is a HIT (appears in any word, excluding position 0)
+  let isHit = false;
   for (const puzzleWord of puzzle.words) {
     // Check if letter appears anywhere EXCEPT position 0 (the key letter)
     const wordWithoutKeyLetter = puzzleWord.word.slice(1);
     if (wordWithoutKeyLetter.includes(upperLetter)) {
-      letterHitBonus += LETTER_HIT_BONUS;
+      isHit = true;
+      break;
     }
   }
+
+  // Calculate streak bonus based on v2 scoring
+  let newStreak = puzzle.currentStreak;
+  let streakBonus = 0;
+
+  if (isHit) {
+    newStreak = puzzle.currentStreak + 1;
+    streakBonus = getStreakBonus(newStreak);
+  } else {
+    // Miss - reset streak
+    newStreak = 0;
+  }
+
+  const newStreakBonusEarned = puzzle.streakBonusEarned + streakBonus;
 
   // Reveal the letter in all words
   let newWords = puzzle.words.map((puzzleWord) => {
@@ -339,7 +403,7 @@ export function guessLetter(puzzle: Puzzle, letter: string): Puzzle {
 
   // Check for auto-completions
   const { words: wordsAfterAutoComplete, score: newScore } =
-    checkAndAutoComplete(newWords, puzzle.score + letterHitBonus);
+    checkAndAutoComplete(newWords, puzzle.score + streakBonus);
   newWords = wordsAfterAutoComplete;
 
   // Check if we should move to word guessing phase
@@ -363,6 +427,8 @@ export function guessLetter(puzzle: Puzzle, letter: string): Puzzle {
     words: newWords,
     phase: newPhase,
     score: newScore,
+    currentStreak: newStreak,
+    streakBonusEarned: newStreakBonusEarned,
   };
 
   // Check cascade/bonus word status (might be awarded if all cascade letters revealed)
@@ -404,11 +470,18 @@ export function guessWord(
   // Calculate score for this guess using new scoring system
   let scoreIncrease = 0;
   if (isCorrect) {
+    // Calculate hints used before this word for escalating penalty
+    let hintsUsedBefore = 0;
+    for (let i = 0; i < wordIndex; i++) {
+      hintsUsedBefore += puzzle.words[i].hintsUsed;
+    }
+
     // Use blanksAtWordPhase (locked when entering word phase) and hintsUsed
     scoreIncrease = calculateWordScore(
       wordIndex,
       targetWord.blanksAtWordPhase,
-      targetWord.hintsUsed
+      targetWord.hintsUsed,
+      hintsUsedBefore
     );
   }
 
@@ -433,10 +506,12 @@ export function guessWord(
 // Submit all words at once - check all guesses and tally scoring
 export function submitAllWords(puzzle: Puzzle): Puzzle {
   let totalScoreIncrease = 0;
+  let hintsUsedBefore = 0;
 
   const newWords = puzzle.words.map((word, index) => {
     // Skip auto-completed words (already scored)
     if (word.autoCompleted) {
+      hintsUsedBefore += word.hintsUsed;
       return word;
     }
 
@@ -454,9 +529,13 @@ export function submitAllWords(puzzle: Puzzle): Puzzle {
       totalScoreIncrease += calculateWordScore(
         index,
         word.blanksAtWordPhase,
-        word.hintsUsed
+        word.hintsUsed,
+        hintsUsedBefore
       );
     }
+
+    // Track hints for escalating penalty calculation
+    hintsUsedBefore += word.hintsUsed;
 
     return {
       ...word,
@@ -580,11 +659,9 @@ export function revealHint(
     ...puzzle,
     words: newWords,
     hintsRemaining: puzzle.hintsRemaining - 1,
+    hintsUsedTotal: puzzle.hintsUsedTotal + 1,
   };
 }
-
-// Cascade/Bonus word scoring - flat 500 points
-const CASCADE_WORD_SCORE = 500;
 
 // Check if bonus word should be awarded (all 5 cascade letters are correct)
 // Returns: { awarded: boolean, locked: boolean }
@@ -640,7 +717,30 @@ export function checkCascadeStatus(puzzle: Puzzle): {
   };
 }
 
+// Calculate the total word score (excluding streak bonus and cascade)
+function calculateWordScoreTotal(puzzle: Puzzle): number {
+  let total = 0;
+  puzzle.words.forEach((word, index) => {
+    if (word.correct) {
+      // Need to track hints used before this word for escalating penalty
+      let hintsUsedBefore = 0;
+      for (let i = 0; i < index; i++) {
+        hintsUsedBefore += puzzle.words[i].hintsUsed;
+      }
+      total += calculateWordScore(
+        index,
+        word.blanksAtWordPhase,
+        word.hintsUsed,
+        hintsUsedBefore,
+        word.autoCompleted
+      );
+    }
+  });
+  return total;
+}
+
 // Award bonus if all cascade letters are correct
+// v2: Cascade is now a percentage amplifier (25% of total word score)
 function checkAndAwardCascade(puzzle: Puzzle): Puzzle {
   // Already awarded or locked
   if (puzzle.cascadeAwarded || puzzle.cascadeLocked) {
@@ -657,10 +757,14 @@ function checkAndAwardCascade(puzzle: Puzzle): Puzzle {
   }
 
   if (awarded) {
+    // Calculate cascade bonus as percentage of word scores
+    const wordScoreTotal = calculateWordScoreTotal(puzzle);
+    const cascadeBonus = Math.round(wordScoreTotal * CASCADE_AMPLIFIER);
+
     return {
       ...puzzle,
       cascadeAwarded: true,
-      score: puzzle.score + CASCADE_WORD_SCORE,
+      score: puzzle.score + cascadeBonus,
     };
   }
 
@@ -682,15 +786,26 @@ export interface ScoreBreakdownItem {
 export function getScoreBreakdown(puzzle: Puzzle): ScoreBreakdownItem[] {
   const breakdown: ScoreBreakdownItem[] = [];
 
-  // Word scoring - use blanksAtWordPhase and hintsUsed for accurate calculation
+  // Streak bonus (if any earned during letter phase)
+  if (puzzle.streakBonusEarned > 0) {
+    breakdown.push({
+      label: "🔥 Letter Streak Bonus",
+      points: puzzle.streakBonusEarned,
+      detail: "Consecutive letter hits",
+    });
+  }
+
+  // Track hints used before each word for escalating penalty calculation
+  let hintsUsedBefore = 0;
+  let wordScoreTotal = 0;
+
+  // Word scoring - use blanksAtWordPhase and hintsUsed with escalating penalties
   puzzle.words.forEach((word, index) => {
     if (word.correct) {
       const config = SCORING_CONFIG[index];
       const blanks = word.blanksAtWordPhase;
       const hints = word.hintsUsed;
 
-      // Formula: base × ((1 + 0.75 × blanks) - (0.25 × hints))
-      // Auto-complete: base + autoCompleteBonus (no hint penalty)
       let wordScore: number;
       let detail: string;
 
@@ -701,18 +816,23 @@ export function getScoreBreakdown(puzzle: Puzzle): ScoreBreakdownItem[] {
         wordScore = config.baseScore;
         detail = `${config.baseScore} × 1.00`;
       } else {
+        // Calculate escalating hint penalty
+        const totalHintPenalty = calculateTotalHintPenalty(hints, hintsUsedBefore);
         const blankBonus = BLANK_MULTIPLIER * blanks;
-        const hintPenalty = HINT_PENALTY * hints;
-        const multiplier = 1 + blankBonus - hintPenalty;
+        const multiplier = Math.max(0.1, 1 + blankBonus - totalHintPenalty);
         wordScore = Math.round(config.baseScore * multiplier);
 
-        detail = `${config.baseScore} × ${multiplier.toFixed(2)}`;
+        if (hints > 0) {
+          detail = `${config.baseScore} × ${multiplier.toFixed(2)} (${hints} hint${hints > 1 ? "s" : ""})`;
+        } else {
+          detail = `${config.baseScore} × ${multiplier.toFixed(2)}`;
+        }
       }
+
+      wordScoreTotal += wordScore;
 
       const wordLabel = word.autoCompleted
         ? `Word ${index + 1} (auto)`
-        : hints > 0
-        ? `Word ${index + 1} (${hints} hint${hints > 1 ? "s" : ""})`
         : `Word ${index + 1}`;
 
       breakdown.push({
@@ -720,6 +840,8 @@ export function getScoreBreakdown(puzzle: Puzzle): ScoreBreakdownItem[] {
         points: wordScore,
         detail,
       });
+
+      hintsUsedBefore += hints;
     } else if (word.guessed) {
       breakdown.push({
         label: `Word ${index + 1}: ${word.word}`,
@@ -729,18 +851,19 @@ export function getScoreBreakdown(puzzle: Puzzle): ScoreBreakdownItem[] {
     }
   });
 
-  // Bonus word (Cascade)
+  // Cascade Amplifier (v2: percentage of word score)
   if (puzzle.cascadeAwarded) {
+    const cascadeBonus = Math.round(wordScoreTotal * CASCADE_AMPLIFIER);
     breakdown.push({
-      label: `🎯 Cascade Bonus: ${puzzle.cascadeWord.word}`,
-      points: CASCADE_WORD_SCORE,
-      detail: "Guessed the hidden cascade word!",
+      label: `🎯 Cascade Amplifier: ${puzzle.cascadeWord.word}`,
+      points: cascadeBonus,
+      detail: `+${Math.round(CASCADE_AMPLIFIER * 100)}% of word score`,
     });
   } else if (puzzle.cascadeLocked) {
     breakdown.push({
       label: `Cascade: ${puzzle.cascadeWord.word}`,
       points: 0,
-      detail: "Incorrect guess",
+      detail: "Incorrect guess - no amplifier",
     });
   }
 

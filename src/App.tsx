@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GameBoard } from "./components/GameBoard";
 import { PuzzleCreatorSimple } from "./pages/PuzzleCreatorSimple";
+import { BulkPuzzleCreator } from "./pages/bulk/BulkPuzzleCreator";
 import "./App.css";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           }
         />
         <Route path="/creator" element={<PuzzleCreatorSimple />} />
+        <Route path="/creator/bulk" element={<BulkPuzzleCreator />} />
       </Routes>
     </BrowserRouter>
   );

@@ -34,6 +34,12 @@ export interface Puzzle {
   // Hints
   hintsRemaining: number; // Hints left to use (starts at 3)
   maxHints: number; // Maximum hints allowed (3)
+  // Letter streak tracking (v2 scoring)
+  currentStreak: number; // Current consecutive hit streak
+  streakBonusEarned: number; // Total streak bonus accumulated
+  hintsUsedTotal: number; // Track total hints used for escalating penalties
+  // Theme (from curated puzzles)
+  theme?: string; // Optional theme hint for the puzzle
 }
 
 export interface GameState {
