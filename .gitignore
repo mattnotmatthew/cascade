@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Documentation (except README)
+# Documentation (except README and setup guides)
 *.md
 !README.md
+!SUPABASE_SETUP.md
