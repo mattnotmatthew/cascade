@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
 import { WordColumn } from "./WordColumn";
 import {
   generatePuzzle,
   guessLetter,
   skipToWordGuessing,
+  canSkipToWordGuessing,
+  MIN_LETTERS_TO_SKIP,
   calculateFinalScore,
   selectWord,
   updateWordInput,
@@ -12,17 +15,26 @@ import {
   getScoreBreakdown,
   revealHint,
 } from "../utils/gameLogic";
+import { savedPuzzleToGamePuzzle } from "../services/puzzleLoader";
 import {
   loadTodaysPuzzle,
-  savedPuzzleToGamePuzzle,
-} from "../services/puzzleLoader";
+  getTodayDateString,
+} from "../services/puzzleService";
+import {
+  startDailyAttempt,
+  submitScore,
+} from "../services/scoreService";
+import { useAuth } from "../context/AuthContext";
 import type { Puzzle } from "../types/game";
 import { ThemeToggle } from "./ThemeToggle";
+import { LeaderboardPanel } from "./LeaderboardPanel";
+import { DevTools } from "./DevTools";
 import "./GameBoard.css";
 
 const VOWELS = ["A", "E", "I", "O", "U"];
 
 export function GameBoard() {
+  const { user, isAuthenticated, isEmailConfirmed, openAuthModal } = useAuth();
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [puzzleSource, setPuzzleSource] = useState<"curated" | "random">(
@@ -33,12 +45,30 @@ export function GameBoard() {
     null
   );
   const [showHelp, setShowHelp] = useState(false);
+  const [puzzleDate, setPuzzleDate] = useState(getTodayDateString());
+  const [alreadyPlayed, setAlreadyPlayed] = useState(false);
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const hasSubmittedRef = useRef(false);
 
   // Load puzzle on mount - try curated first, fall back to random
   useEffect(() => {
     async function loadPuzzle() {
       setIsLoading(true);
+      const date = getTodayDateString();
+      setPuzzleDate(date);
+      hasSubmittedRef.current = false;
+      setScoreSubmitted(false);
+
       try {
+        // Check if user has already played today (only for confirmed users)
+        if (isAuthenticated && isEmailConfirmed) {
+          const { alreadyCompleted } = await startDailyAttempt(date);
+          if (alreadyCompleted) {
+            setAlreadyPlayed(true);
+            // Still load the puzzle to show what they played
+          }
+        }
+
         const savedPuzzle = await loadTodaysPuzzle();
         if (savedPuzzle) {
           setPuzzle(savedPuzzleToGamePuzzle(savedPuzzle));
@@ -58,12 +88,22 @@ export function GameBoard() {
       setIsLoading(false);
     }
     loadPuzzle();
-  }, []);
+  }, [isAuthenticated, isEmailConfirmed]);
 
   // Handle keyboard input
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!puzzle) return;
+
+      // Ignore if user is typing in an input field (e.g., auth modal)
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement?.getAttribute("contenteditable") === "true"
+      ) {
+        return;
+      }
 
       const key = e.key.toUpperCase();
 
@@ -185,6 +225,30 @@ export function GameBoard() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  // Submit score when game completes (only for confirmed users)
+  useEffect(() => {
+    async function submitFinalScore() {
+      if (
+        puzzle?.phase === "complete" &&
+        isAuthenticated &&
+        isEmailConfirmed &&
+        puzzleSource === "curated" &&
+        !hasSubmittedRef.current &&
+        !alreadyPlayed
+      ) {
+        hasSubmittedRef.current = true;
+        const result = await submitScore(puzzleDate, puzzle);
+        if (result.success) {
+          setScoreSubmitted(true);
+          console.log("[GameBoard] Score submitted successfully");
+        } else {
+          console.error("[GameBoard] Failed to submit score:", result.error);
+        }
+      }
+    }
+    submitFinalScore();
+  }, [puzzle?.phase, isAuthenticated, isEmailConfirmed, puzzleSource, puzzleDate, puzzle, alreadyPlayed]);
+
   const handleGuessLetter = (letter: string) => {
     if (puzzle && puzzle.phase === "guessing-letters") {
       setPuzzle(guessLetter(puzzle, letter));
@@ -293,7 +357,21 @@ export function GameBoard() {
         </div>
 
         <div className="header-right">
+          {isAuthenticated ? (
+            <span className="user-badge" title={user?.email || undefined}>
+              {user?.displayName?.[0]?.toUpperCase() || "U"}
+            </span>
+          ) : (
+            <button className="signin-header-btn" onClick={openAuthModal}>
+              Sign In
+            </button>
+          )}
           <ThemeToggle />
+          <Link to="/leaderboard" className="leaderboard-button" aria-label="Leaderboard">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </Link>
           <button
             className="help-button"
             onClick={() => setShowHelp(!showHelp)}
@@ -303,6 +381,20 @@ export function GameBoard() {
           </button>
         </div>
       </header>
+
+      {/* Already Played Banner */}
+      {alreadyPlayed && puzzleSource === "curated" && (
+        <div className="already-played-banner">
+          You've already completed today's puzzle. Play a practice game instead!
+        </div>
+      )}
+
+      {/* Email Confirmation Banner */}
+      {isAuthenticated && !isEmailConfirmed && (
+        <div className="email-confirmation-banner">
+          Check your email to confirm your account and save scores to the leaderboard!
+        </div>
+      )}
 
       {/* HELP MODAL */}
       {showHelp && (
@@ -317,19 +409,18 @@ export function GameBoard() {
               <h3>Cascade Word</h3>
               <p>
                 A Cascade word runs across Row {puzzle.cascadeWord.row + 1}.<br/>
-                The starting word and the Cascade word share a theme.
-                Complete the Cascade word to amplify your score!
+                Complete all cascade letters for a +500 bonus!
               </p>
             </div>
             <div className="help-section">
               <h3>Letter Phase</h3>
-              <p>Guess up to 6 letters to reveal them across all words.</p>
+              <p>Guess up to 7 letters to reveal them across all words.</p>
               <ul>
                 <li>
-                  <span className="vowel-dot"></span> Vowels are limited (max 2)
+                  <span className="vowel-dot"></span> Vowels are limited (max 3)
                 </li>
                 <li>Consecutive hits build a streak bonus</li>
-                <li>Skip early to keep more blanks</li>
+                <li>Reveal entire words for auto-complete bonus!</li>
               </ul>
             </div>
 
@@ -338,8 +429,9 @@ export function GameBoard() {
               <p>Fill in the blanks to complete each word.</p>
               <ul>
                 <li>Click a column, then type your guess</li>
-                <li>More blanks = higher multiplier</li>
-                <li>Right-click a blank for a hint (first one's free!)</li>
+                <li>More blanks = higher multiplier (up to 2.5×)</li>
+                <li>Wrong guesses cost -25 points</li>
+                <li>Right-click for hints (first one's free!)</li>
               </ul>
             </div>
 
@@ -347,9 +439,9 @@ export function GameBoard() {
               <h3>Scoring Tips</h3>
               <ul>
                 <li>Base scores: 100 / 150 / 150 / 150 / 200</li>
-                <li>Each blank increases your multiplier</li>
-                <li>Letter streaks add bonus points</li>
-                <li>The cascade amplifies your total</li>
+                <li>Build letter streaks for bonus points</li>
+                <li>Auto-complete = 2× base + 50 bonus</li>
+                <li>Cascade bonus: +500 points</li>
               </ul>
             </div>
 
@@ -426,10 +518,15 @@ export function GameBoard() {
               })}
             </div>
 
-            {puzzle.guessedLetters.length >= 2 && remainingGuesses > 0 && (
+            {canSkipToWordGuessing(puzzle) && remainingGuesses > 0 && (
               <button className="skip-button" onClick={handleSkipToWords}>
                 Done with letters — Guess words
               </button>
+            )}
+            {!canSkipToWordGuessing(puzzle) && puzzle.guessedLetters.length > 0 && (
+              <div className="skip-hint">
+                Guess {MIN_LETTERS_TO_SKIP - puzzle.guessedLetters.length} more letter{MIN_LETTERS_TO_SKIP - puzzle.guessedLetters.length !== 1 ? 's' : ''} to skip
+              </div>
             )}
           </div>
         )}
@@ -515,9 +612,37 @@ export function GameBoard() {
             <button className="new-game-button" onClick={handleNewGame}>
               Play Again
             </button>
+
+            {/* Leaderboard Panel (only for daily puzzles) */}
+            {puzzleSource === "curated" && (
+              <LeaderboardPanel puzzleDate={puzzleDate} userScore={finalScore} />
+            )}
+
+            {/* Score submission status */}
+            {puzzleSource === "curated" && !isAuthenticated && (
+              <div className="score-not-saved">
+                <p>Score not saved. Sign in to track your progress!</p>
+                <button onClick={openAuthModal} className="signin-prompt-btn">
+                  Sign In
+                </button>
+              </div>
+            )}
+            {puzzleSource === "curated" && isAuthenticated && !isEmailConfirmed && (
+              <div className="score-not-saved">
+                <p>Score not saved. Confirm your email to save scores!</p>
+              </div>
+            )}
+            {scoreSubmitted && (
+              <div className="score-saved">
+                Score saved!
+              </div>
+            )}
           </div>
         )}
       </main>
+
+      {/* Dev Tools (only in dev mode) */}
+      <DevTools />
     </div>
   );
 }

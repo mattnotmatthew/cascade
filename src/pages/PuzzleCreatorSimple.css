@@ -658,6 +658,70 @@
   box-shadow: var(--shadow-glow-success);
 }
 
+/* Save Buttons Container */
+.save-buttons {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.save-buttons .btn-download {
+  flex: 1;
+  min-width: 150px;
+}
+
+.btn-supabase {
+  flex: 1;
+  min-width: 150px;
+  padding: var(--space-md);
+  background: linear-gradient(135deg, var(--color-cascade), var(--color-bonus));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.btn-supabase:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow-cascade);
+}
+
+.btn-supabase:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Save Result Message */
+.save-result {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  text-align: center;
+}
+
+.save-result.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--color-success);
+}
+
+.save-result.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: var(--color-error);
+}
+
+.supabase-hint {
+  margin-top: var(--space-md);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

@@ -1,3 +1,11 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+*.local
+
 # Logs
 logs
 *.log
@@ -7,24 +15,49 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Environment files
+.env
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Documentation (except key docs)
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/
+
+# Images (screenshots, diagrams - not needed in repo)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+!public/**/*.png
+!public/**/*.jpg
+!public/**/*.ico
+!src/assets/**/*.png
+!src/assets/**/*.svg
+
+# Planning/internal documentation (keep only README and setup docs)
 *.md
 !README.md
 !SUPABASE_SETUP.md
-!ANTI-CHEAT.md
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+.cache

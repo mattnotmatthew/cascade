@@ -31,18 +31,18 @@ function calculateBaseAccuracy(state: WordGuessState): number {
 
 // ============================================
 // AGGRESSIVE STRATEGY
-// Guess all 6 letters, maximize letter phase points
+// Guess all 7 letters, maximize letter phase points
 // ============================================
 export const aggressiveStrategy: Strategy = {
   name: "aggressive",
-  description: "Use all 6 letter guesses, prioritize high-frequency letters",
+  description: "Use all 7 letter guesses, prioritize high-frequency letters",
 
   selectLetter(state: SimGameState): string | null {
-    // Always use all 6 guesses
-    if (state.lettersGuessed.length >= 6) return null;
+    // Always use all 7 guesses (v3)
+    if (state.lettersGuessed.length >= 7) return null;
 
-    // Check vowel limit
-    const canUseVowel = state.vowelsGuessed < 2;
+    // Check vowel limit (v3: 3 vowels)
+    const canUseVowel = state.vowelsGuessed < 3;
 
     // Get best available letters
     const bestLetters = getLettersByExpectedValue();
@@ -65,22 +65,23 @@ export const aggressiveStrategy: Strategy = {
 
 // ============================================
 // CONSERVATIVE STRATEGY
-// Only guess 2 letters (minimum), skip early for word multipliers
+// Only guess 4 letters (v3 minimum), skip early for word multipliers
 // ============================================
 export const conservativeStrategy: Strategy = {
   name: "conservative",
-  description: "Only 2 letter guesses, maximize word phase multipliers",
+  description: "Only 4 letter guesses (minimum), maximize word phase multipliers",
 
   selectLetter(state: SimGameState): string | null {
-    // Only use 2 guesses
-    if (state.lettersGuessed.length >= 2) return null;
+    // v3: Minimum 4 guesses before skip allowed
+    if (state.lettersGuessed.length >= 4) return null;
 
-    // Use top 2 vowels (E, A typically)
-    const bestVowels = getVowelsByExpectedValue();
-
-    for (const letter of bestVowels) {
-      if (state.availableLetters.includes(letter)) {
-        return letter;
+    // Use top vowels first (v3: 3 vowels allowed)
+    if (state.vowelsGuessed < 3) {
+      const bestVowels = getVowelsByExpectedValue();
+      for (const letter of bestVowels) {
+        if (state.availableLetters.includes(letter)) {
+          return letter;
+        }
       }
     }
 
@@ -104,21 +105,21 @@ export const conservativeStrategy: Strategy = {
 
 // ============================================
 // MODERATE STRATEGY
-// Use 3-4 letters, balanced approach
+// Use 5 letters, balanced approach
 // ============================================
 export const moderateStrategy: Strategy = {
   name: "moderate",
-  description: "Use 3-4 letter guesses, balanced approach",
+  description: "Use 5 letter guesses, balanced approach",
 
   selectLetter(state: SimGameState): string | null {
-    // Use 3-4 guesses (stop at 4)
-    if (state.lettersGuessed.length >= 4) return null;
+    // Use 5 guesses (between min 4 and max 7)
+    if (state.lettersGuessed.length >= 5) return null;
 
-    const canUseVowel = state.vowelsGuessed < 2;
+    const canUseVowel = state.vowelsGuessed < 3; // v3: 3 vowels
     const bestLetters = getLettersByExpectedValue();
 
-    // First 2 guesses: prioritize vowels
-    if (state.lettersGuessed.length < 2 && canUseVowel) {
+    // First 3 guesses: prioritize vowels
+    if (state.lettersGuessed.length < 3 && canUseVowel) {
       const bestVowels = getVowelsByExpectedValue();
       for (const letter of bestVowels) {
         if (state.availableLetters.includes(letter)) {
@@ -145,18 +146,18 @@ export const moderateStrategy: Strategy = {
 
 // ============================================
 // VOWEL-HEAVY STRATEGY
-// Use both vowels first, then 2-3 consonants
+// Use all 3 vowels first, then 2-3 consonants
 // ============================================
 export const vowelHeavyStrategy: Strategy = {
   name: "vowel-heavy",
-  description: "Prioritize vowels (max 2), then top consonants",
+  description: "Prioritize vowels (max 3), then top consonants",
 
   selectLetter(state: SimGameState): string | null {
-    // Max 5 guesses
-    if (state.lettersGuessed.length >= 5) return null;
+    // Max 6 guesses (3 vowels + 3 consonants)
+    if (state.lettersGuessed.length >= 6) return null;
 
-    // First: use both vowel slots
-    if (state.vowelsGuessed < 2) {
+    // First: use all vowel slots (v3: 3 vowels)
+    if (state.vowelsGuessed < 3) {
       const bestVowels = getVowelsByExpectedValue();
       for (const letter of bestVowels) {
         if (state.availableLetters.includes(letter)) {
@@ -191,38 +192,40 @@ export const adaptiveStrategy: Strategy = {
   description: "Stop guessing when hit rate drops (smart stopping)",
 
   selectLetter(state: SimGameState): string | null {
-    // Minimum 2 guesses
-    if (state.lettersGuessed.length < 2) {
-      const bestVowels = getVowelsByExpectedValue();
-      for (const letter of bestVowels) {
+    // v3: Minimum 4 guesses before can consider stopping
+    if (state.lettersGuessed.length < 4) {
+      // Use vowels first (v3: 3 vowels)
+      if (state.vowelsGuessed < 3) {
+        const bestVowels = getVowelsByExpectedValue();
+        for (const letter of bestVowels) {
+          if (state.availableLetters.includes(letter)) {
+            return letter;
+          }
+        }
+      }
+      // Then consonants
+      const bestConsonants = getConsonantsByExpectedValue();
+      for (const letter of bestConsonants) {
         if (state.availableLetters.includes(letter)) {
           return letter;
         }
       }
     }
 
-    // Max 6 guesses
-    if (state.lettersGuessed.length >= 6) return null;
+    // Max 7 guesses (v3)
+    if (state.lettersGuessed.length >= 7) return null;
 
-    // After 2 guesses, check hit rate
+    // After 4 guesses, check hit rate
     // If last letter had poor hits, consider stopping
-    if (state.lettersGuessed.length >= 2) {
-      const avgHitsPerLetter =
-        state.currentScore / 125 / state.lettersGuessed.length;
-
-      // If hitting less than 2 words per letter on average, stop
-      if (avgHitsPerLetter < 2 && state.lettersGuessed.length >= 3) {
-        return null;
-      }
-
-      // If last guess had 0-1 hits, stop
-      if (state.letterHitsThisRound <= 1 && state.lettersGuessed.length >= 3) {
+    if (state.lettersGuessed.length >= 4) {
+      // If last guess had 0 hits, consider stopping
+      if (state.letterHitsThisRound === 0 && state.lettersGuessed.length >= 5) {
         return null;
       }
     }
 
     // Continue guessing
-    const canUseVowel = state.vowelsGuessed < 2;
+    const canUseVowel = state.vowelsGuessed < 3; // v3: 3 vowels
     const bestLetters = getLettersByExpectedValue();
 
     for (const letter of bestLetters) {
@@ -250,11 +253,11 @@ export const randomStrategy: Strategy = {
   description: "Random letter selection and stopping (baseline)",
 
   selectLetter(state: SimGameState): string | null {
-    // Random number of guesses (2-6)
-    const targetGuesses = 2 + Math.floor(Math.random() * 5);
+    // Random number of guesses (4-7) - v3: min 4 required
+    const targetGuesses = 4 + Math.floor(Math.random() * 4);
     if (state.lettersGuessed.length >= targetGuesses) return null;
 
-    const canUseVowel = state.vowelsGuessed < 2;
+    const canUseVowel = state.vowelsGuessed < 3; // v3: 3 vowels
 
     // Filter available letters
     const validLetters = state.availableLetters.filter(
@@ -273,6 +276,60 @@ export const randomStrategy: Strategy = {
   },
 };
 
+// ============================================
+// STRATEGIC SKIP STRATEGY
+// Skip early ONLY when confident about words (simulates skilled vocabulary player)
+// ============================================
+export const strategicSkipStrategy: Strategy = {
+  name: "strategic-skip",
+  description: "Skip at 4-5 letters when confident (skilled vocabulary player)",
+
+  selectLetter(state: SimGameState): string | null {
+    // Use 4-5 letters, then skip if we've had good hits
+    if (state.lettersGuessed.length >= 5) return null;
+
+    // After minimum 4, skip if we've had strong hits (simulates recognizing words)
+    if (state.lettersGuessed.length >= 4) {
+      // Skip if we've revealed a lot (simulates "I see the pattern")
+      // This models a player who recognizes they know the words
+      return null;
+    }
+
+    // First 4: use top vowels and consonants
+    if (state.vowelsGuessed < 3) {
+      const bestVowels = getVowelsByExpectedValue();
+      for (const letter of bestVowels) {
+        if (state.availableLetters.includes(letter)) {
+          return letter;
+        }
+      }
+    }
+
+    const bestConsonants = getConsonantsByExpectedValue();
+    for (const letter of bestConsonants) {
+      if (state.availableLetters.includes(letter)) {
+        return letter;
+      }
+    }
+
+    return null;
+  },
+
+  getWordGuessAccuracy(state: WordGuessState): number {
+    // Strategic skipper has HIGH vocabulary skill
+    // They only skip when confident, so accuracy is much higher
+    if (state.isAutoCompleted) return 1.0;
+
+    const revealRatio = state.revealedCount / state.wordLength;
+
+    // Skilled player accuracy curve - much higher than base
+    if (revealRatio >= 0.6) return 0.98; // Almost certain
+    if (revealRatio >= 0.4) return 0.90; // Very confident
+    if (revealRatio >= 0.2) return 0.75; // Good guess
+    return 0.50; // Still decent vocabulary
+  },
+};
+
 // Export all strategies
 export const ALL_STRATEGIES: Strategy[] = [
   aggressiveStrategy,
@@ -280,6 +337,7 @@ export const ALL_STRATEGIES: Strategy[] = [
   moderateStrategy,
   vowelHeavyStrategy,
   adaptiveStrategy,
+  strategicSkipStrategy,
   randomStrategy,
 ];
 

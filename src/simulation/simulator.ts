@@ -11,20 +11,24 @@ import type {
 import { generatePuzzle, isVowel } from "../utils/gameLogic";
 import type { PuzzleWord } from "../types/game";
 
-// Default scoring config v2 (matches current implementation)
+// Default scoring config v3 (matches current implementation)
 const DEFAULT_SCORING_CONFIG: ScoringConfig = {
-  // Letter phase - streak bonuses
-  streakBonuses: [0, 0, 15, 25, 40, 50, 50], // Index = streak length
-  maxLetterGuesses: 6,
-  maxVowels: 2,
+  // Letter phase - streak bonuses (now reward from first hit)
+  streakBonuses: [0, 10, 20, 35, 50, 60, 70], // Index = streak length
+  maxLetterGuesses: 7,
+  maxVowels: 3,
+  minLettersBeforeSkip: 4, // Must guess at least 4 letters before skipping
 
   // Word phase
-  blankMultiplier: 0.75, // Each blank adds 0.75 to multiplier
-  autoCompleteBonus: 75, // Extra points when word is auto-completed
+  blankMultiplier: 0.4, // Reduced to prevent "skip immediately" strategy
+  maxBlankMultiplier: 2.5, // Cap to ensure letter phase stays valuable
+  autoCompleteMultiplier: 2.0, // Guaranteed good multiplier for auto-complete
+  autoCompleteBonus: 50, // Plus flat bonus
+  wrongGuessPenalty: 25, // Points deducted for wrong guesses
   hintPenalties: [0, 0.35, 0.5], // First hint free, then escalating
 
-  // Cascade - now percentage amplifier instead of flat bonus
-  cascadeAmplifier: 0.25, // 25% of total word score
+  // Cascade - now flat bonus instead of percentage
+  cascadeFlatBonus: 500,
 
   // Word base scores
   wordScoring: [
@@ -47,8 +51,8 @@ function getStreakBonus(streakLength: number, config: ScoringConfig): number {
   return config.streakBonuses[streakLength];
 }
 
-// Calculate word score: base × (1 + blankMultiplier × blanks)
-// Auto-complete: base + autoCompleteBonus
+// Calculate word score: base × min(1 + blankMultiplier × blanks, maxBlankMultiplier)
+// Auto-complete: base × autoCompleteMultiplier + autoCompleteBonus
 function calculateWordScore(
   position: number,
   blanks: number,
@@ -57,12 +61,15 @@ function calculateWordScore(
 ): number {
   const wordConfig = config.wordScoring[position];
   if (isAutoComplete) {
-    return wordConfig.baseScore + config.autoCompleteBonus;
+    // v3: Auto-complete gets multiplier + flat bonus
+    return Math.round(wordConfig.baseScore * config.autoCompleteMultiplier) + config.autoCompleteBonus;
   }
   if (blanks === 0) {
     return wordConfig.baseScore;
   }
-  const multiplier = 1 + config.blankMultiplier * blanks;
+  // v3: Blank multiplier is capped
+  const rawMultiplier = 1 + config.blankMultiplier * blanks;
+  const multiplier = Math.min(rawMultiplier, config.maxBlankMultiplier);
   return Math.round(wordConfig.baseScore * multiplier);
 }
 
@@ -207,6 +214,7 @@ export function simulateGame(
 
   // === WORD GUESSING PHASE ===
   let wordsCorrect = 0;
+  let wordsWrong = 0;
   const cascadeRowCorrect: boolean[] = [];
 
   puzzle.words.forEach((puzzleWord, index) => {
@@ -251,11 +259,15 @@ export function simulateGame(
         cascadeRowCorrect.push(true);
       }
     } else {
+      // v3: Wrong guesses incur penalty
+      wordsWrong++;
+      wordPhaseScore -= config.wrongGuessPenalty;
+
       if (verbose) {
         console.log(
           `Word ${index + 1} (${puzzleWord.word}): INCORRECT (accuracy: ${(
             accuracy * 100
-          ).toFixed(0)}%)`
+          ).toFixed(0)}%), -${config.wrongGuessPenalty} pts`
         );
       }
 
@@ -269,14 +281,14 @@ export function simulateGame(
     }
   });
 
-  // === CASCADE AMPLIFIER ===
+  // === CASCADE BONUS ===
   const cascadeEarned =
     cascadeRowCorrect.length === 5 && cascadeRowCorrect.every((c) => c);
   if (cascadeEarned) {
-    // v2: Cascade is percentage of word phase score
-    cascadeBonus = Math.round(wordPhaseScore * config.cascadeAmplifier);
+    // v3: Cascade is flat bonus
+    cascadeBonus = config.cascadeFlatBonus;
     if (verbose) {
-      console.log(`CASCADE AMPLIFIER: +${cascadeBonus} pts (${config.cascadeAmplifier * 100}% of word score)!`);
+      console.log(`CASCADE BONUS: +${cascadeBonus} pts!`);
     }
   }
 
@@ -298,6 +310,7 @@ export function simulateGame(
     letterHits: totalHits,
     vowelsUsed,
     wordsCorrect,
+    wordsWrong,
     wordsAutoCompleted: wordsAutoCompleted.length,
     blanksAtWordPhase: totalBlanks,
     cascadeEarned,
