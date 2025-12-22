@@ -8,6 +8,8 @@ import { Link } from "react-router-dom";
 import { datamuseApi } from "../services/datamuseApi";
 import { EXPECTED_LENGTHS, type SavedPuzzle } from "../types/creator";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { savePuzzleToSupabase } from "../services/puzzleService";
+import { isSupabaseEnabled } from "../services/supabase";
 import "./PuzzleCreatorSimple.css";
 
 type Step = "words" | "row" | "review";
@@ -52,6 +54,13 @@ export function PuzzleCreatorSimple() {
   // Swap modal state
   const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [swapColumnIndex, setSwapColumnIndex] = useState<number | null>(null);
+
+  // Supabase save state
+  const [isSavingToSupabase, setIsSavingToSupabase] = useState(false);
+  const [supabaseSaveResult, setSupabaseSaveResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   // Check viability for all rows
   const checkViability = async () => {
@@ -183,6 +192,34 @@ export function PuzzleCreatorSimple() {
     URL.revokeObjectURL(url);
   };
 
+  // Save puzzle to Supabase
+  const handleSaveToSupabase = async () => {
+    if (!selectedPuzzle) return;
+
+    setIsSavingToSupabase(true);
+    setSupabaseSaveResult(null);
+
+    const savedPuzzle: SavedPuzzle = {
+      date: puzzleDate,
+      cascadeWord: selectedPuzzle.cascadeWord,
+      seedWord: selectedPuzzle.seedWord,
+      cascadeRow: selectedPuzzle.cascadeRow,
+      columnWords: selectedPuzzle.columnWords,
+      createdAt: new Date().toISOString(),
+      metadata: puzzleTheme.trim() ? { theme: puzzleTheme.trim() } : undefined,
+    };
+
+    const result = await savePuzzleToSupabase(savedPuzzle);
+
+    setIsSavingToSupabase(false);
+    setSupabaseSaveResult({
+      success: result.success,
+      message: result.success
+        ? `Puzzle saved for ${puzzleDate}!`
+        : `Error: ${result.error}`,
+    });
+  };
+
   // Start over
   const reset = () => {
     setStep("words");
@@ -192,6 +229,7 @@ export function PuzzleCreatorSimple() {
     setSelectedPuzzle(null);
     setPuzzleTheme("");
     setError(null);
+    setSupabaseSaveResult(null);
   };
 
   // Render puzzle grid preview
@@ -585,9 +623,35 @@ export function PuzzleCreatorSimple() {
               </p>
             </div>
 
-            <button className="btn-download" onClick={handleDownload}>
-              📥 Download Puzzle JSON
-            </button>
+            <div className="save-buttons">
+              <button className="btn-download" onClick={handleDownload}>
+                Download JSON
+              </button>
+
+              {isSupabaseEnabled() && (
+                <button
+                  className="btn-supabase"
+                  onClick={handleSaveToSupabase}
+                  disabled={isSavingToSupabase}
+                >
+                  {isSavingToSupabase ? "Saving..." : "Save to Supabase"}
+                </button>
+              )}
+            </div>
+
+            {supabaseSaveResult && (
+              <div
+                className={`save-result ${supabaseSaveResult.success ? "success" : "error"}`}
+              >
+                {supabaseSaveResult.message}
+              </div>
+            )}
+
+            {!isSupabaseEnabled() && (
+              <p className="supabase-hint">
+                Configure Supabase environment variables to save directly to the database.
+              </p>
+            )}
           </div>
 
           <div className="step-actions">

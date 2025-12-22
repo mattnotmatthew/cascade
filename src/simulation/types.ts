@@ -41,27 +41,27 @@ export interface SimulationConfig {
   scoringOverrides?: Partial<ScoringConfig>;
 }
 
-// Scoring configuration v2 (mirrors gameLogic.ts)
+// Scoring configuration v3 (mirrors gameLogic.ts)
 export interface ScoringConfig {
   // Letter phase
-  streakBonuses: number[]; // Bonus per streak length [0, 0, 15, 25, 40, 50, 50]
-  maxLetterGuesses: number;
-  maxVowels: number;
+  streakBonuses: number[]; // Bonus per streak length [0, 10, 20, 35, 50, 60, 70]
+  maxLetterGuesses: number; // 7
+  maxVowels: number; // 3
+  minLettersBeforeSkip: number; // 4 - minimum letters before skip allowed
 
   // Word phase
-  blankMultiplier: number; // Each blank adds this to the multiplier (e.g., 0.75)
-  autoCompleteBonus: number; // Extra points when word is auto-completed (75)
+  blankMultiplier: number; // Each blank adds this to the multiplier (0.4)
+  maxBlankMultiplier: number; // Cap on blank multiplier (2.5)
+  autoCompleteMultiplier: number; // Multiplier for auto-completed words (2.0)
+  autoCompleteBonus: number; // Flat bonus for auto-completed words (50)
+  wrongGuessPenalty: number; // Points deducted for wrong word guesses (25)
   hintPenalties: number[]; // Escalating: [0, 0.35, 0.50] - first hint free
 
   // Cascade
-  cascadeAmplifier: number; // Percentage of word score (0.25 = 25%)
+  cascadeFlatBonus: number; // Flat bonus for cascade (500)
 
   // Word base scores
   wordScoring: Array<{ baseScore: number }>;
-
-  // Legacy (deprecated, kept for compatibility)
-  letterHitBonus?: number;
-  cascadeBonus?: number;
 }
 
 // Results from a single simulated game
@@ -74,6 +74,7 @@ export interface GameResult {
   letterHits: number;
   vowelsUsed: number;
   wordsCorrect: number;
+  wordsWrong: number; // v3: track wrong guesses
   wordsAutoCompleted: number;
   blanksAtWordPhase: number; // Total unrevealed letters when entering word phase
   cascadeEarned: boolean;

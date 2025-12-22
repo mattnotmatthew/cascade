@@ -102,6 +102,31 @@
   gap: var(--space-sm);
 }
 
+.leaderboard-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  transition: var(--transition-fast);
+  text-decoration: none;
+}
+
+.leaderboard-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-gold);
+  border-color: var(--color-gold);
+}
+
+.leaderboard-button svg {
+  width: 16px;
+  height: 16px;
+}
+
 .help-button {
   width: 32px;
   height: 32px;
@@ -496,6 +521,13 @@
   box-shadow: var(--shadow-glow-cascade);
 }
 
+.skip-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-sm);
+}
+
 /* ============================================
    WORD PHASE CONTROLS
    ============================================ */
@@ -856,4 +888,104 @@
     gap: var(--space-sm);
     text-align: center;
   }
+}
+
+/* ============================================
+   AUTH & LEADERBOARD STYLES
+   ============================================ */
+
+/* User Badge in Header */
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--color-cascade), var(--color-bonus));
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 50%;
+  text-transform: uppercase;
+}
+
+/* Sign In Button in Header */
+.signin-header-btn {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--glass-bg);
+  border: 1px solid var(--color-cascade);
+  border-radius: var(--radius-md);
+  color: var(--color-cascade);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.signin-header-btn:hover {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+/* Already Played Banner */
+.already-played-banner {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: var(--color-gold);
+  text-align: center;
+  padding: var(--space-md);
+  margin: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+}
+
+.email-confirmation-banner {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--color-info, #3b82f6);
+  text-align: center;
+  padding: var(--space-md);
+  margin: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+}
+
+/* Score Not Saved / Saved Messages */
+.score-not-saved {
+  background: var(--glass-bg);
+  border: 1px solid var(--color-cascade);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  text-align: center;
+  margin-top: var(--space-lg);
+}
+
+.score-not-saved p {
+  margin: 0 0 var(--space-md) 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.signin-prompt-btn {
+  padding: var(--space-sm) var(--space-xl);
+  background: var(--color-cascade);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.signin-prompt-btn:hover {
+  background: var(--color-bonus);
+}
+
+.score-saved {
+  text-align: center;
+  color: var(--color-success);
+  font-size: 0.875rem;
+  margin-top: var(--space-md);
+  padding: var(--space-sm);
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: var(--radius-md);
 }
