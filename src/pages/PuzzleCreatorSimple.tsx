@@ -199,7 +199,12 @@ export function PuzzleCreatorSimple() {
     puzzle: SelectedPuzzle,
     showSwapButtons = false
   ) => {
-    const { cascadeWord: cascade, seedWord: seed, cascadeRow, columnWords } = puzzle;
+    const {
+      cascadeWord: cascade,
+      seedWord: seed,
+      cascadeRow,
+      columnWords,
+    } = puzzle;
 
     return (
       <div className="puzzle-grid-preview">
@@ -236,9 +241,7 @@ export function PuzzleCreatorSimple() {
 
                 // Don't show cells beyond word length
                 if (rowIndex >= maxLen) {
-                  return (
-                    <div key={colIndex} className="grid-cell empty"></div>
-                  );
+                  return <div key={colIndex} className="grid-cell empty"></div>;
                 }
 
                 return (
@@ -344,13 +347,17 @@ export function PuzzleCreatorSimple() {
           <ThemeToggle />
         </div>
         <h1>Puzzle Creator</h1>
-        <p className="subtitle">Create CASCADE puzzles with direct word entry</p>
+        <p className="subtitle">
+          Create CASCADE puzzles with direct word entry
+        </p>
       </header>
 
       {/* Progress indicator */}
       <div className="progress-bar">
         <div
-          className={`progress-step ${step === "words" ? "active" : "complete"}`}
+          className={`progress-step ${
+            step === "words" ? "active" : "complete"
+          }`}
         >
           1. Enter Words
         </div>
@@ -397,7 +404,8 @@ export function PuzzleCreatorSimple() {
                         setCascadeWord(newWord.join(""));
                         // Auto-focus next input
                         if (val && i < 4) {
-                          const next = e.target.nextElementSibling as HTMLInputElement;
+                          const next = e.target
+                            .nextElementSibling as HTMLInputElement;
                           next?.focus();
                         }
                       }
@@ -435,7 +443,8 @@ export function PuzzleCreatorSimple() {
                         setSeedWord(newWord.join(""));
                         // Auto-focus next input
                         if (val && i < 4) {
-                          const next = e.target.nextElementSibling as HTMLInputElement;
+                          const next = e.target
+                            .nextElementSibling as HTMLInputElement;
                           next?.focus();
                         }
                       }
@@ -450,6 +459,20 @@ export function PuzzleCreatorSimple() {
                   />
                 ))}
               </div>
+            </div>
+
+            <div className="word-input-group theme-input-group">
+              <label>Puzzle Theme (optional)</label>
+              <p className="input-hint">
+                A hint shown to players about what the puzzle is themed around
+              </p>
+              <input
+                type="text"
+                className="theme-input"
+                value={puzzleTheme}
+                onChange={(e) => setPuzzleTheme(e.target.value)}
+                placeholder="e.g., Ocean Storm, Movies, Nature..."
+              />
             </div>
           </div>
 

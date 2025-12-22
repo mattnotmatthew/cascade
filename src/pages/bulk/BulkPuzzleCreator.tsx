@@ -9,9 +9,13 @@ import {
   getPuzzleStats,
   determineResumeStep,
   getStepClass,
+  checkViability,
   type Step,
 } from "../../services/bulkPuzzleGenerator";
-import { exportBatchAsZip, getExportableCount } from "../../services/zipExporter";
+import {
+  exportBatchAsZip,
+  getExportableCount,
+} from "../../services/zipExporter";
 import {
   saveBatchToStorage,
   loadBatchFromStorage,
@@ -86,13 +90,15 @@ export function BulkPuzzleCreator() {
   );
 
   // Initialize batch with configuration
-  const initializeBatch = () => {
+  const initializeBatch = async () => {
     const dates = generateDates(startDate, numberOfDays);
     const randomPairs = getRandomPairs(numberOfDays);
 
     // Guard against empty theme library
     if (randomPairs.length === 0) {
-      setGenerationError("No theme pairs available. Please check theme configuration.");
+      setGenerationError(
+        "No theme pairs available. Please check theme configuration."
+      );
       return;
     }
 
@@ -107,6 +113,7 @@ export function BulkPuzzleCreator() {
         columnOptions: [[], [], [], [], []],
         status: "pending" as const,
         theme: theme.name,
+        viabilityStatus: "unchecked" as const,
       };
     });
 
@@ -121,6 +128,12 @@ export function BulkPuzzleCreator() {
 
     setBatch(newBatch);
     setStep("assign");
+
+    // Check viability for all puzzles after batch is created
+    for (let i = 0; i < puzzles.length; i++) {
+      const puzzle = puzzles[i];
+      checkPuzzleViability(i, puzzle.cascadeWord, puzzle.seedWord);
+    }
   };
 
   // Resume saved batch
@@ -139,12 +152,56 @@ export function BulkPuzzleCreator() {
     setShowResumeModal(false);
   };
 
-  // Update a puzzle's cascade/seed words
-  const updatePuzzleWords = (index: number, cascadeWord: string, seedWord: string) => {
+  // Check viability for a single puzzle
+  const checkPuzzleViability = useCallback(
+    async (index: number, cascadeWord: string, seedWord: string) => {
+      // Only check if both words are complete
+      if (cascadeWord.length !== 5 || seedWord.length !== 5) {
+        updatePuzzle(index, {
+          viabilityStatus: "unchecked",
+          viableRows: undefined,
+        });
+        return;
+      }
+
+      updatePuzzle(index, { viabilityStatus: "checking" });
+
+      try {
+        const result = await checkViability(cascadeWord, seedWord);
+        updatePuzzle(index, {
+          viabilityStatus: result.viable ? "viable" : "not-viable",
+          viableRows: result.viableRows,
+        });
+      } catch (error) {
+        console.error("Viability check failed:", error);
+        updatePuzzle(index, { viabilityStatus: "unchecked" });
+      }
+    },
+    [updatePuzzle]
+  );
+
+  // Update a puzzle's cascade/seed words and trigger viability check
+  const updatePuzzleWords = (
+    index: number,
+    cascadeWord: string,
+    seedWord: string
+  ) => {
+    const upperCascade = cascadeWord.toUpperCase();
+    const upperSeed = seedWord.toUpperCase();
+
     updatePuzzle(index, {
-      cascadeWord: cascadeWord.toUpperCase(),
-      seedWord: seedWord.toUpperCase(),
+      cascadeWord: upperCascade,
+      seedWord: upperSeed,
+      viabilityStatus: "unchecked", // Reset while typing
     });
+
+    // Debounce the viability check
+    if (upperCascade.length === 5 && upperSeed.length === 5) {
+      // Use setTimeout for simple debounce
+      setTimeout(() => {
+        checkPuzzleViability(index, upperCascade, upperSeed);
+      }, 500);
+    }
   };
 
   // Apply a theme to a puzzle
@@ -154,7 +211,10 @@ export function BulkPuzzleCreator() {
       cascadeWord: pair.cascadeWord,
       seedWord: pair.seedWord,
       theme: theme.name,
+      viabilityStatus: "unchecked",
     });
+    // Check viability for the new theme
+    checkPuzzleViability(index, pair.cascadeWord, pair.seedWord);
   };
 
   // Generate all puzzles
@@ -181,7 +241,10 @@ export function BulkPuzzleCreator() {
       updatePuzzle(i, { status: "generating" });
 
       try {
-        const generated = await generateSinglePuzzle(puzzle.cascadeWord, puzzle.seedWord);
+        const generated = await generateSinglePuzzle(
+          puzzle.cascadeWord,
+          puzzle.seedWord
+        );
 
         if (generated) {
           updatePuzzle(i, {
@@ -215,7 +278,10 @@ export function BulkPuzzleCreator() {
     updatePuzzle(index, { status: "generating" });
 
     try {
-      const generated = await generateSinglePuzzle(puzzle.cascadeWord, puzzle.seedWord);
+      const generated = await generateSinglePuzzle(
+        puzzle.cascadeWord,
+        puzzle.seedWord
+      );
 
       if (generated) {
         updatePuzzle(index, {
@@ -301,7 +367,10 @@ export function BulkPuzzleCreator() {
           const isCascadeRow = rowIndex === cascadeRow;
 
           return (
-            <div key={rowIndex} className={`preview-row ${isCascadeRow ? "cascade-row" : ""}`}>
+            <div
+              key={rowIndex}
+              className={`preview-row ${isCascadeRow ? "cascade-row" : ""}`}
+            >
               {columnWords.map((word, colIndex) => {
                 const letter = word[rowIndex] || "";
                 const maxLen = COLUMN_LENGTHS[colIndex];
@@ -313,7 +382,9 @@ export function BulkPuzzleCreator() {
                 return (
                   <div
                     key={colIndex}
-                    className={`preview-cell ${isCascadeRow ? "cascade-cell" : ""}`}
+                    className={`preview-cell ${
+                      isCascadeRow ? "cascade-cell" : ""
+                    }`}
                   >
                     {letter}
                   </div>
@@ -380,7 +451,9 @@ export function BulkPuzzleCreator() {
                   max={31}
                   value={numberOfDays}
                   onChange={(e) =>
-                    setNumberOfDays(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))
+                    setNumberOfDays(
+                      Math.min(31, Math.max(1, parseInt(e.target.value) || 1))
+                    )
                   }
                   className="number-input"
                 />
@@ -391,15 +464,21 @@ export function BulkPuzzleCreator() {
                 <label>Review Mode</label>
                 <div className="review-mode-options">
                   <button
-                    className={`mode-btn ${reviewMode === "full" ? "selected" : ""}`}
+                    className={`mode-btn ${
+                      reviewMode === "full" ? "selected" : ""
+                    }`}
                     onClick={() => setReviewMode("full")}
                   >
                     <span className="mode-icon">📝</span>
                     <span className="mode-name">Full Review</span>
-                    <span className="mode-desc">Edit each puzzle individually</span>
+                    <span className="mode-desc">
+                      Edit each puzzle individually
+                    </span>
                   </button>
                   <button
-                    className={`mode-btn ${reviewMode === "quick" ? "selected" : ""}`}
+                    className={`mode-btn ${
+                      reviewMode === "quick" ? "selected" : ""
+                    }`}
                     onClick={() => setReviewMode("quick")}
                   >
                     <span className="mode-icon">⚡</span>
@@ -407,7 +486,9 @@ export function BulkPuzzleCreator() {
                     <span className="mode-desc">Overview with quick edits</span>
                   </button>
                   <button
-                    className={`mode-btn ${reviewMode === "auto" ? "selected" : ""}`}
+                    className={`mode-btn ${
+                      reviewMode === "auto" ? "selected" : ""
+                    }`}
                     onClick={() => setReviewMode("auto")}
                   >
                     <span className="mode-icon">🤖</span>
@@ -418,7 +499,9 @@ export function BulkPuzzleCreator() {
               </div>
             </div>
 
-            {generationError && <div className="error-message">{generationError}</div>}
+            {generationError && (
+              <div className="error-message">{generationError}</div>
+            )}
 
             <button className="btn-primary" onClick={initializeBatch}>
               Continue →
@@ -431,8 +514,8 @@ export function BulkPuzzleCreator() {
           <div className="assign-step">
             <h2>Assign Cascade & Seed Words</h2>
             <p className="step-hint">
-              Each puzzle needs a cascade word (hidden) and seed word (starting letters). Click a
-              theme to auto-fill, or enter words manually.
+              Each puzzle needs a cascade word (hidden) and seed word (starting
+              letters). Click a theme to auto-fill, or enter words manually.
             </p>
 
             {/* Theme Palette */}
@@ -444,7 +527,9 @@ export function BulkPuzzleCreator() {
                     key={theme.id}
                     className="theme-chip"
                     onClick={() => {
-                      const pendingIndex = batch.puzzles.findIndex((p) => p.status === "pending");
+                      const pendingIndex = batch.puzzles.findIndex(
+                        (p) => p.status === "pending"
+                      );
                       if (pendingIndex >= 0) {
                         applyThemeToPuzzle(pendingIndex, theme);
                       }
@@ -461,7 +546,12 @@ export function BulkPuzzleCreator() {
             {/* Puzzle List */}
             <div className="puzzle-list">
               {batch.puzzles.map((puzzle, index) => (
-                <div key={puzzle.date} className="puzzle-row">
+                <div
+                  key={puzzle.date}
+                  className={`puzzle-row ${
+                    puzzle.viabilityStatus === "not-viable" ? "not-viable" : ""
+                  } ${puzzle.viabilityStatus === "viable" ? "viable" : ""}`}
+                >
                   <div className="puzzle-date">{puzzle.date}</div>
                   <div className="puzzle-inputs">
                     <div className="word-input-pair">
@@ -470,9 +560,17 @@ export function BulkPuzzleCreator() {
                         type="text"
                         maxLength={5}
                         value={puzzle.cascadeWord}
-                        onChange={(e) => updatePuzzleWords(index, e.target.value, puzzle.seedWord)}
+                        onChange={(e) =>
+                          updatePuzzleWords(
+                            index,
+                            e.target.value,
+                            puzzle.seedWord
+                          )
+                        }
                         placeholder="5 letters"
-                        className={puzzle.cascadeWord.length === 5 ? "valid" : ""}
+                        className={
+                          puzzle.cascadeWord.length === 5 ? "valid" : ""
+                        }
                       />
                     </div>
                     <div className="word-input-pair">
@@ -481,13 +579,59 @@ export function BulkPuzzleCreator() {
                         type="text"
                         maxLength={5}
                         value={puzzle.seedWord}
-                        onChange={(e) => updatePuzzleWords(index, puzzle.cascadeWord, e.target.value)}
+                        onChange={(e) =>
+                          updatePuzzleWords(
+                            index,
+                            puzzle.cascadeWord,
+                            e.target.value
+                          )
+                        }
                         placeholder="5 letters"
                         className={puzzle.seedWord.length === 5 ? "valid" : ""}
                       />
                     </div>
+                    <div className="word-input-pair theme-input-pair">
+                      <label>Theme</label>
+                      <input
+                        type="text"
+                        value={puzzle.theme || ""}
+                        onChange={(e) =>
+                          updatePuzzle(index, { theme: e.target.value })
+                        }
+                        placeholder="e.g., Nature"
+                        className="theme-input"
+                      />
+                    </div>
                   </div>
-                  <div className="puzzle-theme-badge">{puzzle.theme || "Custom"}</div>
+                  {/* Viability Status Indicator */}
+                  <div className="viability-status">
+                    {puzzle.viabilityStatus === "checking" && (
+                      <span
+                        className="status-checking"
+                        title="Checking viability..."
+                      >
+                        ⏳
+                      </span>
+                    )}
+                    {puzzle.viabilityStatus === "viable" && (
+                      <span
+                        className="status-viable"
+                        title={`Viable! Rows: ${puzzle.viableRows
+                          ?.map((r) => r + 1)
+                          .join(", ")}`}
+                      >
+                        ✓
+                      </span>
+                    )}
+                    {puzzle.viabilityStatus === "not-viable" && (
+                      <span
+                        className="status-not-viable"
+                        title="No viable rows found - try different words"
+                      >
+                        ⚠️
+                      </span>
+                    )}
+                  </div>
                   <div className="puzzle-actions">
                     <button
                       className="btn-small"
@@ -499,7 +643,13 @@ export function BulkPuzzleCreator() {
                             cascadeWord: pair.cascadeWord,
                             seedWord: pair.seedWord,
                             theme: theme.name,
+                            viabilityStatus: "unchecked",
                           });
+                          checkPuzzleViability(
+                            index,
+                            pair.cascadeWord,
+                            pair.seedWord
+                          );
                         }
                       }}
                       title="Random theme"
@@ -511,8 +661,19 @@ export function BulkPuzzleCreator() {
               ))}
             </div>
 
+            {/* Viability Summary */}
+            {batch.puzzles.some((p) => p.viabilityStatus === "not-viable") && (
+              <div className="viability-warning">
+                ⚠️ Some word combinations are not viable. Consider changing the
+                cascade/seed words for puzzles marked with a warning.
+              </div>
+            )}
+
             <div className="step-actions">
-              <button className="btn-secondary" onClick={() => setStep("config")}>
+              <button
+                className="btn-secondary"
+                onClick={() => setStep("config")}
+              >
                 ← Back
               </button>
               <button
@@ -538,7 +699,9 @@ export function BulkPuzzleCreator() {
                 <div
                   className="progress-fill"
                   style={{
-                    width: `${((generatingIndex + 1) / batch.puzzles.length) * 100}%`,
+                    width: `${
+                      ((generatingIndex + 1) / batch.puzzles.length) * 100
+                    }%`,
                   }}
                 />
               </div>
@@ -550,12 +713,15 @@ export function BulkPuzzleCreator() {
             <div className="generating-status">
               {batch.puzzles[generatingIndex] && (
                 <p>
-                  Generating puzzle for <strong>{batch.puzzles[generatingIndex].date}</strong>...
+                  Generating puzzle for{" "}
+                  <strong>{batch.puzzles[generatingIndex].date}</strong>...
                 </p>
               )}
             </div>
 
-            {generationError && <div className="error-message">{generationError}</div>}
+            {generationError && (
+              <div className="error-message">{generationError}</div>
+            )}
           </div>
         )}
 
@@ -566,7 +732,9 @@ export function BulkPuzzleCreator() {
 
             {/* Stats */}
             <div className="review-stats">
-              <span className="stat success">✓ {stats.successful} generated</span>
+              <span className="stat success">
+                ✓ {stats.successful} generated
+              </span>
               <span className="stat error">✗ {stats.errors} errors</span>
             </div>
 
@@ -576,7 +744,9 @@ export function BulkPuzzleCreator() {
                 <div className="review-nav">
                   <button
                     className="btn-secondary"
-                    onClick={() => setCurrentReviewIndex(Math.max(0, currentReviewIndex - 1))}
+                    onClick={() =>
+                      setCurrentReviewIndex(Math.max(0, currentReviewIndex - 1))
+                    }
                     disabled={currentReviewIndex === 0}
                   >
                     ← Previous
@@ -588,7 +758,10 @@ export function BulkPuzzleCreator() {
                     className="btn-secondary"
                     onClick={() =>
                       setCurrentReviewIndex(
-                        Math.min(batch.puzzles.length - 1, currentReviewIndex + 1)
+                        Math.min(
+                          batch.puzzles.length - 1,
+                          currentReviewIndex + 1
+                        )
                       )
                     }
                     disabled={currentReviewIndex === batch.puzzles.length - 1}
@@ -600,7 +773,9 @@ export function BulkPuzzleCreator() {
                 <div className="current-puzzle-review">
                   <div className="puzzle-info">
                     <h3>{batch.puzzles[currentReviewIndex].date}</h3>
-                    <span className={`status-badge ${batch.puzzles[currentReviewIndex].status}`}>
+                    <span
+                      className={`status-badge ${batch.puzzles[currentReviewIndex].status}`}
+                    >
                       {batch.puzzles[currentReviewIndex].status}
                     </span>
                   </div>
@@ -611,23 +786,31 @@ export function BulkPuzzleCreator() {
                     <div className="column-words-edit">
                       <h4>Column Words (click to swap)</h4>
                       <div className="column-word-buttons">
-                        {batch.puzzles[currentReviewIndex].columnWords.map((word, i) => (
-                          <button
-                            key={i}
-                            className="column-word-btn"
-                            onClick={() => {
-                              setSwapColumnIndex(i);
-                              setSwapModalOpen(true);
-                            }}
-                          >
-                            {word}
-                            {batch.puzzles[currentReviewIndex].columnOptions[i]?.length > 1 && (
-                              <span className="swap-badge">
-                                ↔ {batch.puzzles[currentReviewIndex].columnOptions[i].length}
-                              </span>
-                            )}
-                          </button>
-                        ))}
+                        {batch.puzzles[currentReviewIndex].columnWords.map(
+                          (word, i) => (
+                            <button
+                              key={i}
+                              className="column-word-btn"
+                              onClick={() => {
+                                setSwapColumnIndex(i);
+                                setSwapModalOpen(true);
+                              }}
+                            >
+                              {word}
+                              {batch.puzzles[currentReviewIndex].columnOptions[
+                                i
+                              ]?.length > 1 && (
+                                <span className="swap-badge">
+                                  ↔{" "}
+                                  {
+                                    batch.puzzles[currentReviewIndex]
+                                      .columnOptions[i].length
+                                  }
+                                </span>
+                              )}
+                            </button>
+                          )
+                        )}
                       </div>
                     </div>
                   )}
@@ -659,7 +842,10 @@ export function BulkPuzzleCreator() {
                         setCurrentReviewIndex(index);
                         setBatch((prev) =>
                           prev
-                            ? { ...prev, config: { ...prev.config, reviewMode: "full" } }
+                            ? {
+                                ...prev,
+                                config: { ...prev.config, reviewMode: "full" },
+                              }
                             : null
                         );
                       }}
@@ -671,7 +857,9 @@ export function BulkPuzzleCreator() {
                       {puzzle.status === "error" ? (
                         <div className="card-error">❌ Error</div>
                       ) : (
-                        <div className="card-preview">{renderPuzzlePreview(puzzle, true)}</div>
+                        <div className="card-preview">
+                          {renderPuzzlePreview(puzzle, true)}
+                        </div>
                       )}
                       <div className="card-actions">
                         {puzzle.status === "error" && (
@@ -700,7 +888,10 @@ export function BulkPuzzleCreator() {
                 </p>
                 <div className="auto-summary">
                   {batch.puzzles.map((puzzle) => (
-                    <div key={puzzle.date} className={`summary-item ${puzzle.status}`}>
+                    <div
+                      key={puzzle.date}
+                      className={`summary-item ${puzzle.status}`}
+                    >
                       <span>{puzzle.date}</span>
                       <span>{puzzle.status === "error" ? "❌" : "✓"}</span>
                     </div>
@@ -710,7 +901,10 @@ export function BulkPuzzleCreator() {
             )}
 
             <div className="step-actions">
-              <button className="btn-secondary" onClick={() => setStep("assign")}>
+              <button
+                className="btn-secondary"
+                onClick={() => setStep("assign")}
+              >
                 ← Back to Words
               </button>
               <button
@@ -733,7 +927,8 @@ export function BulkPuzzleCreator() {
               <div className="summary-card">
                 <span className="summary-label">Date Range</span>
                 <span className="summary-value">
-                  {batch.puzzles[0]?.date} → {batch.puzzles[batch.puzzles.length - 1]?.date}
+                  {batch.puzzles[0]?.date} →{" "}
+                  {batch.puzzles[batch.puzzles.length - 1]?.date}
                 </span>
               </div>
               <div className="summary-card">
@@ -743,30 +938,41 @@ export function BulkPuzzleCreator() {
               <div className="summary-card">
                 <span className="summary-label">Themes Used</span>
                 <span className="summary-value">
-                  {[...new Set(batch.puzzles.map((p) => p.theme).filter(Boolean))].length}
+                  {
+                    [
+                      ...new Set(
+                        batch.puzzles.map((p) => p.theme).filter(Boolean)
+                      ),
+                    ].length
+                  }
                 </span>
               </div>
             </div>
 
             <div className="download-info">
               <p>
-                Your puzzles will be downloaded as a ZIP file containing individual JSON files for
-                each day.
+                Your puzzles will be downloaded as a ZIP file containing
+                individual JSON files for each day.
               </p>
               <p>
-                Place the JSON files in <code>public/puzzles/</code> to make them available as
-                daily puzzles.
+                Place the JSON files in <code>public/puzzles/</code> to make
+                them available as daily puzzles.
               </p>
             </div>
 
-            {generationError && <div className="error-message">{generationError}</div>}
+            {generationError && (
+              <div className="error-message">{generationError}</div>
+            )}
 
             <button className="btn-download" onClick={handleDownload}>
               📥 Download {stats.successful} Puzzles as ZIP
             </button>
 
             <div className="step-actions">
-              <button className="btn-secondary" onClick={() => setStep("review")}>
+              <button
+                className="btn-secondary"
+                onClick={() => setStep("review")}
+              >
                 ← Back to Review
               </button>
               <button className="btn-secondary" onClick={handleReset}>
@@ -801,21 +1007,35 @@ export function BulkPuzzleCreator() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Swap Word for Column {swapColumnIndex + 1}</h3>
-              <button className="modal-close" onClick={() => setSwapModalOpen(false)}>
+              <button
+                className="modal-close"
+                onClick={() => setSwapModalOpen(false)}
+              >
                 ×
               </button>
             </div>
             <div className="modal-body">
               <p>
                 Current:{" "}
-                <strong>{batch.puzzles[currentReviewIndex].columnWords[swapColumnIndex]}</strong>
+                <strong>
+                  {
+                    batch.puzzles[currentReviewIndex].columnWords[
+                      swapColumnIndex
+                    ]
+                  }
+                </strong>
               </p>
               <div className="word-options">
-                {batch.puzzles[currentReviewIndex].columnOptions[swapColumnIndex]?.map((word) => (
+                {batch.puzzles[currentReviewIndex].columnOptions[
+                  swapColumnIndex
+                ]?.map((word) => (
                   <button
                     key={word}
                     className={`word-option ${
-                      word === batch.puzzles[currentReviewIndex].columnWords[swapColumnIndex]
+                      word ===
+                      batch.puzzles[currentReviewIndex].columnWords[
+                        swapColumnIndex
+                      ]
                         ? "current"
                         : ""
                     }`}

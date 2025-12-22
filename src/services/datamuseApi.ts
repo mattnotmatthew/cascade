@@ -209,6 +209,12 @@ class DatamuseService {
 
       const data: DatamuseWord[] = await response.json();
 
+      // Minimum frequency threshold to filter out obscure/rare words
+      // Common words typically have frequency > 1.0
+      // Words like "the", "and" have frequency > 1000
+      // Reasonable vocabulary words have frequency > 0.5
+      const MIN_FREQUENCY = 0.5;
+
       // Filter to exact length match and sort by frequency
       const expectedLength = pattern.length;
       const wordsWithFreq = data
@@ -220,6 +226,8 @@ class DatamuseService {
           // Only single words matching exact length
           if (!/^[a-z]+$/.test(item.word)) return false;
           if (item.word.length !== expectedLength) return false;
+          // Filter out very rare/obscure words
+          if (item.frequency < MIN_FREQUENCY) return false;
           return true;
         })
         .sort((a, b) => b.frequency - a.frequency);
@@ -227,8 +235,16 @@ class DatamuseService {
       const words = wordsWithFreq.map((item) => item.word.toUpperCase());
 
       console.log(
-        `[Datamuse] Pattern "${pattern}" returned ${words.length} words`
+        `[Datamuse] Pattern "${pattern}" returned ${words.length} words (filtered from ${data.length})`
       );
+      if (wordsWithFreq.length > 0) {
+        console.log(
+          `[Datamuse] Top matches: ${wordsWithFreq
+            .slice(0, 5)
+            .map((w) => `${w.word}(f:${w.frequency.toFixed(2)})`)
+            .join(", ")}`
+        );
+      }
 
       setCache(cacheKey, words);
       return words;

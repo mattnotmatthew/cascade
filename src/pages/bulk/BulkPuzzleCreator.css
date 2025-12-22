@@ -21,7 +21,11 @@
   font-family: var(--font-display);
   font-size: 2.5rem;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--color-cascade) 0%, var(--color-bonus) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-cascade) 0%,
+    var(--color-bonus) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -67,7 +71,11 @@
 }
 
 .step-item.active {
-  background: linear-gradient(135deg, var(--color-cascade) 0%, var(--color-bonus) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-cascade) 0%,
+    var(--color-bonus) 100%
+  );
   color: var(--color-bg-deep);
   border-color: transparent;
 }
@@ -300,14 +308,67 @@
   border-color: var(--color-success);
 }
 
-.puzzle-theme-badge {
-  font-size: 0.75rem;
-  padding: 2px var(--space-sm);
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  min-width: 80px;
+/* Theme input in puzzle row */
+.theme-input-pair input {
+  width: 120px;
+  text-transform: none;
+}
+
+/* Viability Status */
+.viability-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+
+.status-checking {
+  font-size: 1rem;
+  animation: pulse 1s infinite;
+}
+
+.status-viable {
+  font-size: 1.1rem;
+  color: var(--color-success);
+  font-weight: bold;
+}
+
+.status-not-viable {
+  font-size: 1rem;
+  cursor: help;
+}
+
+/* Puzzle row states */
+.puzzle-row.not-viable {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: var(--color-error);
+}
+
+.puzzle-row.viable {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: var(--color-success);
+}
+
+/* Viability warning banner */
+.viability-warning {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid var(--color-warning, #fbbf24);
+  color: var(--color-warning, #fbbf24);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
   text-align: center;
+  font-size: 0.9rem;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .puzzle-actions {
@@ -351,7 +412,11 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-cascade) 0%, var(--color-bonus) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-cascade) 0%,
+    var(--color-bonus) 100%
+  );
   color: var(--color-bg-deep);
 }
 
@@ -396,7 +461,11 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-cascade) 0%, var(--color-bonus) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--color-cascade) 0%,
+    var(--color-bonus) 100%
+  );
   transition: width 0.3s ease;
 }
 
@@ -516,7 +585,11 @@
 }
 
 .preview-row.cascade-row .preview-cell:not(.empty) {
-  background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-amber) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gold) 0%,
+    var(--color-amber) 100%
+  );
   color: var(--color-bg-deep);
   border-color: var(--color-gold);
 }
@@ -542,14 +615,22 @@
 }
 
 .preview-cell.seed-cell {
-  background: linear-gradient(135deg, var(--color-cascade) 0%, var(--color-bonus) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-cascade) 0%,
+    var(--color-bonus) 100%
+  );
   color: var(--color-bg-deep);
   font-weight: 700;
   border: none;
 }
 
 .preview-cell.cascade-cell {
-  background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-amber) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gold) 0%,
+    var(--color-amber) 100%
+  );
   color: var(--color-bg-deep);
   border-color: var(--color-gold);
 }
@@ -911,7 +992,11 @@
 }
 
 .word-option.current {
-  background: linear-gradient(135deg, var(--color-cascade) 0%, var(--color-bonus) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-cascade) 0%,
+    var(--color-bonus) 100%
+  );
   color: var(--color-bg-deep);
 }
 

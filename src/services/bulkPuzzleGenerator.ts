@@ -14,7 +14,10 @@ const COLUMN_LENGTHS = [4, 5, 5, 5, 6] as const;
 export async function generateSinglePuzzle(
   cascadeWord: string,
   seedWord: string
-): Promise<Pick<BulkPuzzleEntry, "cascadeRow" | "columnWords" | "columnOptions"> | null> {
+): Promise<Pick<
+  BulkPuzzleEntry,
+  "cascadeRow" | "columnWords" | "columnOptions"
+> | null> {
   const cascade = cascadeWord.toUpperCase();
   const seed = seedWord.toUpperCase();
 
@@ -52,6 +55,48 @@ export async function generateSinglePuzzle(
   }
 
   return null;
+}
+
+/**
+ * Quick viability check - returns which cascade rows (1, 2, 3) have words for all columns
+ * This is faster than full generation as it just checks if words exist
+ */
+export async function checkViability(
+  cascadeWord: string,
+  seedWord: string
+): Promise<{ viable: boolean; viableRows: number[] }> {
+  const cascade = cascadeWord.toUpperCase();
+  const seed = seedWord.toUpperCase();
+  const viableRows: number[] = [];
+
+  // Check each cascade row (1, 2, 3)
+  for (const row of [1, 2, 3] as const) {
+    let allColumnsHaveWords = true;
+
+    for (let col = 0; col < 5; col++) {
+      const wordLength = COLUMN_LENGTHS[col];
+      const words = await datamuseApi.getColumnWords(
+        seed[col],
+        cascade[col],
+        row,
+        wordLength
+      );
+
+      if (words.length === 0) {
+        allColumnsHaveWords = false;
+        break;
+      }
+    }
+
+    if (allColumnsHaveWords) {
+      viableRows.push(row);
+    }
+  }
+
+  return {
+    viable: viableRows.length > 0,
+    viableRows,
+  };
 }
 
 /**
@@ -114,7 +159,13 @@ export function determineResumeStep(puzzles: BulkPuzzleEntry[]): Step {
  * Get CSS class for step progress indicator
  */
 export function getStepClass(targetStep: Step, currentStep: Step): string {
-  const stepOrder: Step[] = ["config", "assign", "generating", "review", "download"];
+  const stepOrder: Step[] = [
+    "config",
+    "assign",
+    "generating",
+    "review",
+    "download",
+  ];
   const currentIndex = stepOrder.indexOf(currentStep);
   const targetIndex = stepOrder.indexOf(targetStep);
 

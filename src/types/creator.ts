@@ -106,6 +106,9 @@ export interface BulkPuzzleEntry {
   status: "pending" | "generating" | "generated" | "reviewed" | "error";
   errorMessage?: string;
   theme?: string;
+  // Viability checking (done during Step 2)
+  viabilityStatus?: "unchecked" | "checking" | "viable" | "not-viable";
+  viableRows?: number[]; // Which rows (1, 2, 3) are viable
 }
 
 export interface BulkBatch {
